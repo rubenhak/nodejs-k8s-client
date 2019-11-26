@@ -1,6 +1,6 @@
 {
-  "name": "nodejs-k8s-client.git",
-  "version": "1.0.0",
+  "name": "k8s-super-client",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://rubenhak@github.com/rubenhak/nodejs-k8s-client.git"
+  },
+  "directories": {
+    "lib": "./lib"
   },
   "author": "",
   "license": "Apache-2.0",
