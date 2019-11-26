@@ -17,6 +17,10 @@
   },
   "homepage": "https://github.com/rubenhak/nodejs-k8s-client#readme",
   "dependencies": {
+    "@google-cloud/container": "^1.4.0",
+    "base-64": "^0.1.0",
+    "jsonwebtoken": "^8.5.1",
+    "ndjson": "^1.5.0",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "the-lodash": "^1.0.15",
