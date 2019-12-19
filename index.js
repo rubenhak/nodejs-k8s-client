@@ -12,9 +12,9 @@ function getLogger(logger) {
 }
 
 /**
- * Connects to Kubernetes server. 
+ * Connects to Kubernetes server.
  * Arguments:
- *  logger: 
+ *  logger:
  *  endpoint: server url
  *  config: additional parameters:
  *     caData: cluster CA certificate
@@ -28,25 +28,9 @@ module.exports.connect = function(logger, endpoint, config) {
 }
 
 /**
- * Connects to GCP server. 
+ * Connects to GCP server.
  * Arguments:
- *  logger: 
- *  endpoint: server url
- *  config: additional parameters:
- *     caData: cluster CA certificate
- *     token: access token
- */
-module.exports.connect = function(logger, endpoint, config) {
-    logger = getLogger(logger);
-
-    const connector = require('./lib/connector-gcp');
-    return connector(logger, endpoint, config);
-}
-
-/**
- * Connects to GCP server. 
- * Arguments:
- *  logger: 
+ *  logger:
  *  credentials: gcp credentials
  *  id: cluster name
  *  region: cluster region
@@ -57,4 +41,3 @@ module.exports.connectToGKE = function(logger, credentials, id, region) {
     const connector = require('./lib/connector-gke');
     return connector(logger, credentials, id, region);
 }
-
