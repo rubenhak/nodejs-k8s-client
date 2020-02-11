@@ -1,6 +1,6 @@
 {
   "name": "k8s-super-client",
-  "version": "1.0.8",
+  "version": "1.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -21,11 +21,10 @@
   "homepage": "https://github.com/rubenhak/nodejs-k8s-client#readme",
   "dependencies": {
     "@google-cloud/container": "^1.4.0",
+    "axios": "^0.19.2",
     "base-64": "^0.1.0",
     "jsonwebtoken": "^8.5.1",
     "ndjson": "^1.5.0",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.5",
     "the-lodash": "^1.0.15",
     "the-logger": "^1.1.20",
     "the-promise": "^1.1.4"

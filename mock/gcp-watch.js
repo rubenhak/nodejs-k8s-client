@@ -6,10 +6,12 @@ const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'gcp-credent
 
 return K8sClient.connectToGKE(null, credentials, "kubevious-samples", "us-central1-a")
     .then(client => {
-        return client.Deployment.queryAll("kube-system")
+        return client.Deployment.watchAll("kube-system", (x) => {
+            console.log("WATCH CB: " + x);
+        })
     })
     .then(result => {
-        console.log(result);
+        console.log("*******************");
     })
     .catch(reason => {
         console.log("***** ERROR *****");
