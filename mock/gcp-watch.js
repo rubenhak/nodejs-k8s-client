@@ -10,8 +10,8 @@ return K8sClient.connectToGKE(null, credentials, "kubevious-samples", "us-centra
             console.log("!!! WATCH CB: " + x);
         }, () => {
             console.log("!!! WATCH CONNECTED");
-        }, () => {
-            console.log("!!! WATCH DISCONNECTED");
+        }, (resourceAccessor, data) => {
+            console.log("!!! WATCH DISCONNECTED, status: " + data.status);
         })
     })
     .then(result => {
