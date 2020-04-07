@@ -1,10 +1,6 @@
-var fs = require('fs');
-var path = require('path');
-const K8sClient = require('../');
+var ClientFetcher = require('../test/client');
 
-const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'gcp-credentials.json'), 'utf8'));
-
-return K8sClient.connectToGKE(null, credentials, "kubevious-samples", "us-central1-a")
+return ClientFetcher()
     .then(client => {
         return client.Deployment.queryAll("kube-system")
     })
