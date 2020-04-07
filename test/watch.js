@@ -3,27 +3,9 @@ var should = require('should');
 
 var ClientFetcher = require('./client');
 
-describe('gcp-tests', function() {
-    this.timeout(10*1000);
+describe('deployment-watch', function() {
 
-    it('deployment-query', function () {
-        
-        return ClientFetcher()
-            .then(client => {
-                return client.Deployment.queryAll("kube-system")
-            })
-            .then(result => {
-                result.should.be.an.Array;
-
-                console.log(result.map(x => x.metadata.name));
-
-                result.should.matchEvery(x => x.metadata.namespace == "kube-system");
-                result.should.matchAny(x => x.metadata.name == "kube-dns");
-            });
-
-    });
-
-    it('deployment-watch', function () {
+    it('case-1', function () {
 
         return ClientFetcher()
             .then(client => {
@@ -46,9 +28,10 @@ describe('gcp-tests', function() {
 
                 return Promise.timeout(5000)
                     .then(() => {
-                        watch.stop();
-                        return watchResult;
-                    });
+                        watch.stop()
+                        return watch.waitClose();
+                    })
+                    .then(() => watchResult);
             })
             .then(watchResult => {
                 watchResult.result.should.be.an.Array;
