@@ -1,6 +1,3 @@
-const _ = require('the-lodash');
-const container = require('@google-cloud/container');
-
 function getLogger(logger) {
     var logger = require('the-logger').setup('k8s-client',
     {
