@@ -4,6 +4,7 @@ var should = require('should');
 var ClientFetcher = require('./client');
 
 describe('gcp-tests', function() {
+    this.timeout(10*1000);
 
     it('deployment-query', function () {
         
@@ -23,7 +24,6 @@ describe('gcp-tests', function() {
     });
 
     it('deployment-watch', function () {
-        this.timeout(10*1000);
 
         return ClientFetcher()
             .then(client => {
