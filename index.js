@@ -25,6 +25,16 @@ module.exports.connect = function(logger, endpoint, config) {
 }
 
 /**
+ * Connects to Digital Ocean server.
+ */
+module.exports.connectToDO = function(logger, token, config) {
+    logger = getLogger(logger);
+
+    const connector = require('./lib/connector-do');
+    return connector(logger, token, config);
+}
+
+/**
  * Connects to GCP server.
  * Arguments:
  *  logger:
