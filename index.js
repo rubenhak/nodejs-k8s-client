@@ -12,16 +12,20 @@ function getLogger(logger) {
  * Connects to Kubernetes server.
  * Arguments:
  *  logger:
- *  endpoint: server url
  *  config: additional parameters:
- *     caData: cluster CA certificate
+ *     server: server url
  *     token: access token
+ *     httpAgent: passed to http agent
+ *       ca: cluster CA certificate
+ *       cert: client certificate
+ *       key: client private key
+ * 
  */
-module.exports.connect = function(logger, endpoint, config) {
+module.exports.connect = function(logger, config) {
     logger = getLogger(logger);
 
     const connector = require('./lib/connector-remote');
-    return connector(logger, endpoint, config);
+    return connector(logger, config);
 }
 
 /**
