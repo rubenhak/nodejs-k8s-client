@@ -1,10 +1,12 @@
 function getLogger(logger) {
+    if (logger) {
+        return logger;
+    }
     var logger = require('the-logger').setup('k8s-client',
     {
         enableFile: false,
         pretty: true
     });
-    logger.level = 'silly';
     return logger;
 }
 
@@ -19,7 +21,7 @@ function getLogger(logger) {
  *       ca: cluster CA certificate
  *       cert: client certificate
  *       key: client private key
- * 
+ *
  */
 module.exports.connect = function(logger, config) {
     logger = getLogger(logger);
