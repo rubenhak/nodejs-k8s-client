@@ -1,6 +1,6 @@
 {
   "name": "k8s-super-client",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -27,7 +27,8 @@
     "ndjson": "^1.5.0",
     "the-lodash": "^1.1.1",
     "the-logger": "^1.1.22",
-    "the-promise": "^1.2.1"
+    "the-promise": "^1.2.1",
+    "uuid": "^8.2.0"
   },
   "devDependencies": {
     "mocha": "6.2.3",
