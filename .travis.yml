@@ -1,6 +1,17 @@
 language: node_js
 node_js:
-  - 12
-install:
-  - npm i -g mocha@6.2.3
-  - npm install
+- stable
+# before_script:
+# - npm run build
+deploy:
+  skip_cleanup: true
+  provider: npm
+  email: ruben.hakopian@gmail.com
+  api_key:
+    secure: YjeQZ3e0VsLaqOBRuhW6QyQgzB3elDK3rhIGNFNI7f/+KF+XEZTWrt1+9HS9o7iDoQhnrDWKPAe0OOKvn3zkeELh3bHgD2j6HwixWPupsc5Jjf8UiJ89ZZGOzAGY2cEjifPUiVwxu54xidnD9Wvbdl4+0pxTocHPWdOs1UD9JEqJIEpwdRKiT4IJSkyLshPZIj0EH9E32cOuhHfNZj3sV7PS+53Ja3kIbyvLOpgQh5U2EThyXrz//ZiixHsYstb/zxyOoDZE7lsJG3Nm/M4kXAPW9V7UWghgIxxpweMqVqwXzIN2QIdueKSaQZt1Q9uDqnjG/XokRyubhCXzhbTmVYXZkFMZH1fDLxd7aiuKLTRuuE76rYbRdpUtoafP8wa+Yfq+A9C+n3Ajmx9ww3AN/eMmWxatMFK9W0oRGqILdnhU+r+xpZgCBUQpHLYWvcAlQhI//mtRn6CoX33iw9cJCBCdMSHlimxbm0lQlLvoWRLZXlAex0OicpS1NI/jtNbHDgQ6jwMA1aXiCfUk3hasb4LUBjmnV0HQ8/mrb8daRWsxg/mNL9IYuF9DAQ5dYfzCzyfeBjhkMyZlql7N0+TKOlI8jsgjUmAIoYuQuJw1lYyxOPXwsj4S6+ygw7yK5DLjZpDqqBdhXVWRH2UDD3Q72v35WYZ4ic3fmhmggkqwr38=
+  on:
+    branch: master
+    tags: true
+# install:
+#   - npm i -g mocha@6.2.3
+#   - npm install
