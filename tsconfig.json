@@ -68,7 +68,7 @@
   },
   "include": [
     "src"
-  ],
+, "sink/connector-remote.js"  ],
   "exclude": [
     "node_modules",
     "test",

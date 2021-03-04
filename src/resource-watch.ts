@@ -1,10 +1,38 @@
-const _ = require('the-lodash');
-const ndjson = require('ndjson')
-const { v4: uuidv4 } = require('uuid');
+import _ from 'the-lodash'
+import { ILogger } from 'the-logger';
+import { Promise } from 'the-promise';
+import { v4 as uuidv4 } from 'uuid';
+import * as ndjson from 'ndjson';
+import { ResourceAccessor } from './resource-accessor';
 
-class ResourceWatch
+export class ResourceWatch
 {
-    constructor(logger, resourceAccessor, namespace, cb, connectCb, disconnectCb)
+    private _logger : ILogger;
+    private _resourceAccessor : ResourceAccessor;
+
+    private _id : string;
+    private _namespace : string;
+
+    private _snapshot : any = {};
+    private _newSnapshot : any;
+    private _recovering : boolean = false;
+    private _isScheduled : boolean = false;
+    private _scheduleTimeout : number = 100;
+    private _isStopped : boolean = false;
+    private _stream : any = null;
+    private _isDisconnected : boolean = true;
+
+    private _cb : any;
+    private _connectCb : any;
+    private _disconnectCb : any;
+
+    private _waitCloseResolveCb : any;
+
+    private _watches : Record<string, ResourceWatch>;
+
+    constructor(logger : ILogger, resourceAccessor: ResourceAccessor, namespace: string, 
+        cb: any, connectCb: any, disconnectCb: any,
+        watches : Record<string, ResourceWatch>)
     {
         this._id = uuidv4();
         this._logger = logger;
@@ -13,13 +41,7 @@ class ResourceWatch
         this._cb = cb;
         this._connectCb = connectCb;
         this._disconnectCb = disconnectCb;
-        this._snapshot = {};
-        this._recovering = false;
-        this._isScheduled = false;
-        this._scheduleTimeout = 100;
-        this._isStopped = false;
-        this._stream = null;
-        this._isDisconnected = true;
+        this._watches = watches;
     }
 
     get logger() {
@@ -33,7 +55,7 @@ class ResourceWatch
     start()
     {
         this._logger.info('[start] %s...', this.name);
-        this._resourceAccessor._parent._watches[this._id] = this;
+        this._watches[this._id] = this;
         this._runWatch();
     }
 
@@ -42,7 +64,7 @@ class ResourceWatch
         this._logger.info('[stop] %s...', this.name);
         this._isStopped = true;
         this._closeStream();
-        delete this._resourceAccessor._parent._watches[this._id];
+        delete this._watches[this._id];
     }
 
     waitClose()
@@ -60,7 +82,7 @@ class ResourceWatch
         });
     }
 
-    _closeStream()
+    private _closeStream()
     {
         if (this._stream) {
             this._logger.info('[_closeStream] Destroying...');
@@ -71,14 +93,14 @@ class ResourceWatch
         }
     }
 
-    _runWatch()
+    private _runWatch()
     {
         this._isScheduled = false;
 
-        var uriParts = this._resourceAccessor._makeUriParts(this._namespace);
-        var url = this._resourceAccessor._joinUrls(uriParts);
+        let uriParts = this._resourceAccessor._makeUriParts(this._namespace);
+        let url = this._resourceAccessor._joinUrls(uriParts);
 
-        var params = {
+        let params = {
             watch: true
         }
         this._startRecoveryCountdown();
@@ -121,7 +143,7 @@ class ResourceWatch
                 }
             })
             .catch(reason => {
-                var data = {};
+                let data = {};
                 if (reason.status) {
                     this.logger.error("[_runWatch] Error Code: %s", reason.status);
                     data.status = reason.status;
@@ -132,7 +154,7 @@ class ResourceWatch
             })
     }
 
-    _handleChange(action, data)
+    private _handleChange(action, data)
     {
         this._logger.info('[_handleChange] %s. %s :: %s...', this.name, action, data.metadata.name);
 
@@ -149,20 +171,20 @@ class ResourceWatch
         }
     }
 
-    _applyToSnapshot(snapshot, action, data)
+    private _applyToSnapshot(snapshot: any, action : DeltaAction, data: any)
     {
-        if (action == 'ADDED' || action == 'MODIFIED') {
+        if (action == DeltaAction.Added || action == DeltaAction.Modified) {
             snapshot[data.metadata.name] = data;
             return;
         }
-        if (action == 'DELETED') {
+        if (action == DeltaAction.Deleted) {
             delete snapshot[data.metadata.name];
             return;
         }
         throw new Error("Unknown action: " + action);
     }
 
-    _onDisconnect(data)
+    private _onDisconnect(data)
     {
         if (this._isDisconnected) {
             return;
@@ -182,14 +204,14 @@ class ResourceWatch
 
         if (this._isStopped) {
             if (this._waitCloseResolveCb) {
-                var x = this._waitCloseResolveCb;
+                let x = this._waitCloseResolveCb;
                 this._waitCloseResolveCb = null;
                 x();
             }
         }
     }
 
-    _tryReconnect()
+    private _tryReconnect()
     {
         if (this._isStopped) {
             return;
@@ -200,7 +222,7 @@ class ResourceWatch
         this._scheduleRunWatch();
     }
 
-    _scheduleRunWatch()
+    private _scheduleRunWatch()
     {
         if (this._isScheduled) {
             return;
@@ -221,7 +243,7 @@ class ResourceWatch
             this._scheduleTimeout);
     }
 
-    _startRecoveryCountdown()
+    private _startRecoveryCountdown()
     {
         if (!this._recovering) {
             return;
@@ -230,14 +252,14 @@ class ResourceWatch
         this._scheduleRecoveryTimer(1000);
     }
 
-    _scheduleRecoveryTimer(duration)
+    private _scheduleRecoveryTimer(duration)
     {
         this._logger.silly('[_scheduleRecoveryTimer] %s. timeout: %s...', this.name, duration);
         this._stopTimer();
         this._recoveryTimeout = setTimeout(this._handleRecovery.bind(this), duration);
     }
 
-    _handleRecovery()
+    private _handleRecovery()
     {
         this._logger.info('[_handleRecovery] %s...', this.name);
         this._stopTimer();
@@ -245,15 +267,15 @@ class ResourceWatch
         this._logger.silly('[_handleRecovery] %s. Snapshot: ', this.name, this._snapshot);
         this._logger.silly('[_handleRecovery] %s. NewSnapshot: ', this.name, this._newSnapshot);
 
-        var delta = this._produceDelta(this._snapshot, this._newSnapshot);
+        let delta = this._produceDelta(this._snapshot, this._newSnapshot);
         this._logger.verbose('[_handleRecovery] %s. delta: ', this.name, delta);
 
-        for(var x of delta) {
+        for(let x of delta) {
             this._applyToSnapshot(this._snapshot, x.action, x.data);
             this._cb(x.action, x.data);
         }
 
-        var finalDelta = this._produceDelta(this._snapshot, this._newSnapshot);
+        let finalDelta = this._produceDelta(this._snapshot, this._newSnapshot);
         if (finalDelta.length > 0) {
             this._logger.info('[_handleRecovery] %s. FINAL delta. should be zero: ', this.name, finalDelta);
             throw new Error("Final Delta After Recover Should Be Empty!");
@@ -265,7 +287,7 @@ class ResourceWatch
         this._logger.info('[_handleRecovery] %s recovery completed.', this.name);
     }
 
-    _stopTimer()
+    private _stopTimer()
     {
         if (this._recoveryTimeout) {
             clearTimeout(this._recoveryTimeout);
@@ -273,28 +295,28 @@ class ResourceWatch
         }
     }
 
-    _produceDelta(current, desired)
+    private _produceDelta(current, desired) : DeltaItem[]
     {
-        var delta = [];
-        for(var x of _.keys(current)) {
+        let delta : DeltaItem[] = [];
+        for(let x of _.keys(current)) {
             if (x in desired) {
                 if (!_.fastDeepEqual(current[x], desired[x])) {
                     delta.push({
-                        action: 'MODIFIED',
+                        action: DeltaAction.Modified,
                         data: _.cloneDeep(desired[x])
                     });
                 }
             } else {
                 delta.push({
-                    action: 'DELETED',
+                    action: DeltaAction.Deleted,
                     data: _.cloneDeep(current[x])
                 });
             }
         }
-        for(var x of _.keys(desired)) {
+        for(let x of _.keys(desired)) {
             if (!(x in current)) {
                 delta.push({
-                    action: 'ADDED',
+                    action: DeltaAction.Added,
                     data: _.cloneDeep(desired[x])
                 });
             }
@@ -303,4 +325,15 @@ class ResourceWatch
     }
 }
 
-module.exports = ResourceWatch;
+interface DeltaItem
+{
+    action: DeltaAction,
+    data: any
+}
+
+enum DeltaAction
+{
+    Added,
+    Modified,
+    Deleted
+}
