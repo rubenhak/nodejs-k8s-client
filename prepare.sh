@@ -7,4 +7,4 @@ rm -rf node_modules/
 rm -rf dist/
 
 npm install
-npm update the-lodash the-promise
+npm update the-lodash the-promise the-logger

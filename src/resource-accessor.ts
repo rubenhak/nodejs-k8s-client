@@ -1,24 +1,31 @@
+import { AxiosRequestConfig } from 'axios';
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
-import { KubernetesClient } from './kubernetes-client';
+import { KubernetesClient } from './client';
 
-import { ResourceWatch } from './resource-watch';
+import { ConnectCallback, DisconnectCallback, ResourceWatch, WatchCallback } from './resource-watch';
+
+export interface ResourceScope
+{
+    watches : Record<string, ResourceWatch>;
+    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean);
+}
 
 export class ResourceAccessor
 {
     private _logger : ILogger;
     private _parent : KubernetesClient;
 
-    private _apiName : string;
+    private _apiName : string | null;
     private _apiVersion : string;
     private _kindName : string;
     private _pluralName : string;
 
-    private _watches : Record<string, ResourceWatch>;
+    private _scope: ResourceScope;
 
-    constructor(parent : KubernetesClient, apiName : string, apiVersion : string, pluralName : string, kindName : string,
-        watches : Record<string, ResourceWatch>)
+    constructor(parent : KubernetesClient, apiName : string | null, apiVersion : string, pluralName : string, kindName : string,
+        scope: ResourceScope)
     {
         this._parent = parent;
         this._logger = parent.logger;
@@ -26,7 +33,7 @@ export class ResourceAccessor
         this._apiVersion = apiVersion;
         this._kindName = kindName;
         this._pluralName = pluralName;
-        this._watches = watches;
+        this._scope = scope;
     }
 
     get logger() {
@@ -41,7 +48,7 @@ export class ResourceAccessor
         return this._kindName;
     }
 
-    queryAll(namespace: string, labelFilter)
+    queryAll(namespace?: string, labelFilter? : any)
     {
         let uriParts = this._makeUriParts(namespace);
         return this._getRequest(uriParts, { labelSelector: labelFilter })
@@ -53,7 +60,7 @@ export class ResourceAccessor
             });
     }
     
-    watchAll(namespace: string, cb, connectCb, disconnectCb)
+    watchAll(namespace: string, cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback)
     {
         let watch = new ResourceWatch(this._logger.sublogger("Watch"),
             this,
@@ -61,7 +68,7 @@ export class ResourceAccessor
             cb,
             connectCb,
             disconnectCb,
-            this._watches);
+            this._scope);
         watch.start();
         return watch;
     }
@@ -160,7 +167,7 @@ export class ResourceAccessor
         return url;
     }
 
-    _makeUriParts(namespace : string) //, watch
+    _makeUriParts(namespace? : string | null) //, watch
     {
         let uriParts : string[] = [];
         // if (watch) {

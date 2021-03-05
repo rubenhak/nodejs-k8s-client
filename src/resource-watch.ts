@@ -3,7 +3,11 @@ import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
 import { v4 as uuidv4 } from 'uuid';
 import * as ndjson from 'ndjson';
-import { ResourceAccessor } from './resource-accessor';
+import { ResourceAccessor, ResourceScope } from './resource-accessor';
+
+export type WatchCallback = (action: DeltaAction, data: any) => void;
+export type ConnectCallback = (resourceAccessor : ResourceAccessor) => void;
+export type DisconnectCallback = (resourceAccessor : ResourceAccessor, reason: {}) => void;
 
 export class ResourceWatch
 {
@@ -22,17 +26,19 @@ export class ResourceWatch
     private _stream : any = null;
     private _isDisconnected : boolean = true;
 
-    private _cb : any;
-    private _connectCb : any;
-    private _disconnectCb : any;
+    private _cb : WatchCallback;
+    private _connectCb : ConnectCallback;
+    private _disconnectCb : DisconnectCallback;
 
     private _waitCloseResolveCb : any;
 
-    private _watches : Record<string, ResourceWatch>;
+    private _scope: ResourceScope;
+
+    private _recoveryTimeout: NodeJS.Timeout | null = null;
 
     constructor(logger : ILogger, resourceAccessor: ResourceAccessor, namespace: string, 
-        cb: any, connectCb: any, disconnectCb: any,
-        watches : Record<string, ResourceWatch>)
+        cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback,
+        scope: ResourceScope)
     {
         this._id = uuidv4();
         this._logger = logger;
@@ -41,7 +47,7 @@ export class ResourceWatch
         this._cb = cb;
         this._connectCb = connectCb;
         this._disconnectCb = disconnectCb;
-        this._watches = watches;
+        this._scope = scope;
     }
 
     get logger() {
@@ -55,7 +61,7 @@ export class ResourceWatch
     start()
     {
         this._logger.info('[start] %s...', this.name);
-        this._watches[this._id] = this;
+        this._scope.watches[this._id] = this;
         this._runWatch();
     }
 
@@ -64,13 +70,13 @@ export class ResourceWatch
         this._logger.info('[stop] %s...', this.name);
         this._isStopped = true;
         this._closeStream();
-        delete this._watches[this._id];
+        delete this._scope.watches[this._id];
     }
 
     waitClose()
     {
         this._logger.info('[waitClose] %s...', this.name);
-        return new Promise((resolve, reject) => {
+        return Promise.construct((resolve, reject) => {
             if (this._isDisconnected) {
                 resolve();
             } else {
@@ -100,14 +106,14 @@ export class ResourceWatch
         let uriParts = this._resourceAccessor._makeUriParts(this._namespace);
         let url = this._resourceAccessor._joinUrls(uriParts);
 
-        let params = {
+        let params : Record<string, any> = {
             watch: true
         }
         this._startRecoveryCountdown();
 
         this._isDisconnected = false;
 
-        this._resourceAccessor._parent.request('GET', url, params, null, true)
+        this._scope.request('GET', url, params, null, true)
             .then(result => {
                 this._stream = result.data;
 
@@ -120,11 +126,12 @@ export class ResourceWatch
                 this._stream
                     .pipe(ndjson.parse())
                     .on('data', (data) => {
+                        const item = <K8sWatchItem>data;
                         if (!data.object) {
                             this._logger.error('[_runWatch] MISSING DATA for %s.', this.name, data);
                             return;
                         }
-                        this._handleChange(data.type, data.object);
+                        this._handleChange(item.type, item.object);
                     })
                     .on('finish', () => {
                         this._logger.info('[_runWatch] STREAM :: finish...');
@@ -143,7 +150,7 @@ export class ResourceWatch
                 }
             })
             .catch(reason => {
-                let data = {};
+                let data : Record<string, any> = {};
                 if (reason.status) {
                     this.logger.error("[_runWatch] Error Code: %s", reason.status);
                     data.status = reason.status;
@@ -154,13 +161,13 @@ export class ResourceWatch
             })
     }
 
-    private _handleChange(action, data)
+    private _handleChange(action: DeltaAction, data: any)
     {
         this._logger.info('[_handleChange] %s. %s :: %s...', this.name, action, data.metadata.name);
 
         if (this._recovering) {
             this._applyToSnapshot(this._newSnapshot, action, data);
-            if (action == 'ADDED') {
+            if (action == DeltaAction.Added) {
                 this._scheduleRecoveryTimer(100);
             } else {
                 this._handleRecovery();
@@ -331,9 +338,15 @@ interface DeltaItem
     data: any
 }
 
-enum DeltaAction
+export enum DeltaAction
 {
-    Added,
-    Modified,
-    Deleted
+    Added = 'ADDED',
+    Modified = 'MODIFIED',
+    Deleted = 'DELETED'
+}
+
+interface K8sWatchItem
+{
+    type: DeltaAction,
+    object: any
 }

@@ -2,11 +2,11 @@ import { ILogger } from 'the-logger';
 import * as fs from 'fs';
 import dotenv from 'dotenv'
 
-import { KubernetesClient } from './kubernetes-client';
+import { KubernetesClient } from './client';
 
 dotenv.config()
 
-export function connectFromPod(logger : ILogger)
+export function connectFromPod(logger : ILogger) : KubernetesClient
 {
     var k8sConfig = {
         server: 'https://' + process.env.KUBERNETES_SERVICE_HOST + ':' + process.env.KUBERNETES_SERVICE_PORT_HTTPS,

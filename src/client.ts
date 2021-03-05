@@ -4,23 +4,23 @@ import { Promise } from 'the-promise';
 
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
  
-import { Agent as HttpsAgent } from 'https';
+import { Agent as HttpsAgent, AgentOptions } from 'https';
 
 import { KubernetesError } from "./types";
 import { ResourceAccessor } from './resource-accessor';
 import { ResourceWatch } from './resource-watch';
 
 export interface KubernetesClientConfig {
-    httpAgent? : any,
-    server? : any,
-    token? : any,
+    httpAgent? : AgentOptions,
+    server? : string,
+    token? : string,
 }
 
 export class KubernetesClient
 {
     private _logger : ILogger;
     private _config : KubernetesClientConfig;
-    private _apiGroups : Record<string, any> = {};
+    private _apiGroups : Record<string, ApiGroup> = {};
 
     private _watches : Record<string, ResourceWatch> = {};
 
@@ -30,9 +30,6 @@ export class KubernetesClient
     {
         this._logger = logger;
         this._config = config;
-        this._apiGroups = {};
-
-        this._watches = {};
 
         this._logger.info('[construct] ');
         this._logger.silly('[construct] ', this._config);
@@ -145,11 +142,11 @@ export class KubernetesClient
         }
     }
 
-    _discoverApiVersions()
+    private _discoverApiVersions()
     {
         return Promise.resolve()
             .then(() => this._discoverRootApi())
-            .then(() => this._fetchApiGroup(null, this._rootApiVersion))
+            .then(() => this._fetchApiGroup(null, this._rootApiVersion!))
             .then(() => this._discoverApiGroups())
             .then(apis => {
                 return Promise.parallel(apis, x => this._fetchApiGroup(x.name, x.version));
@@ -157,7 +154,7 @@ export class KubernetesClient
             ;
     }
 
-    _discoverRootApi()
+    private _discoverRootApi()
     {
         return this.request('GET', '/api')
             .then(result => {
@@ -167,7 +164,7 @@ export class KubernetesClient
             })
     }
 
-    _discoverApiGroups() : Promise<ApiInfo[]>
+    private _discoverApiGroups() : Promise<ApiInfo[]>
     {
         return this.request('GET', '/apis')
             .then(result => {
@@ -186,7 +183,7 @@ export class KubernetesClient
             })
     }
 
-    _fetchApiGroup(group, version)
+    private _fetchApiGroup(group: string | null, version: string)
     {
         let url;
         if (group) {
@@ -208,7 +205,7 @@ export class KubernetesClient
             })
     }
 
-    setupApiGroup(kindName, apiName, apiVersion, pluralName)
+    setupApiGroup(kindName: string, apiName: string | null, apiVersion: string, pluralName: string)
     {
         if (apiName) {
             this.logger.info("[setupApiGroup] %s :: %s :: %s :: %s...", kindName, apiName, apiVersion, pluralName)
@@ -218,14 +215,18 @@ export class KubernetesClient
 
         if (!this._apiGroups[kindName]) {
             this._apiGroups[kindName] = {
-                default: null,
                 apiNames: {}
             };
         }
 
-        let client = new ResourceAccessor(this, apiName, apiVersion, pluralName, kindName, this._watches);
+        const scope = {
+            watches: this._watches,
+            request: this.request.bind(this)
+        }
 
-        let apiGroupInfo = {
+        let client = new ResourceAccessor(this, apiName, apiVersion, pluralName, kindName, scope);
+
+        let apiGroupInfo : ApiGroupInfo = {
             pluralName: pluralName,
             version: apiVersion,
             client: client
@@ -239,14 +240,14 @@ export class KubernetesClient
         return client;
     }
 
-    client(kindName: string, apiName?: string)
+    client(kindName: string, apiName?: string) : ResourceAccessor | null
     {
         let kindInfo = this._apiGroups[kindName];
         if (!kindInfo) {
             return null;
         }
 
-        let apiGroupInfo;
+        let apiGroupInfo : ApiGroupInfo | undefined;
         if (apiName) {
             apiGroupInfo = kindInfo.apiNames[apiName];
         } else {
@@ -260,7 +261,7 @@ export class KubernetesClient
         return apiGroupInfo.client;
     }
 
-    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, string>, body? : Record<string, any>, useStream? : boolean)
+    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean)
     {
         this._logger.info('[request] %s => %s...', method, url);
 
@@ -367,4 +368,17 @@ interface ApiInfo
 {
     name: string,
     version: string
+}
+
+interface ApiGroup
+{
+    default?: ApiGroupInfo,
+    apiNames: Record<string, ApiGroupInfo>
+};
+
+interface ApiGroupInfo
+{
+    pluralName: string,
+    version: string,
+    client: ResourceAccessor
 }
