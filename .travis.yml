@@ -1,8 +1,9 @@
 language: node_js
 node_js:
 - stable
-# before_script:
-# - npm run build
+before_script:
+- curl -sfL https://get.k3s.io | sh -
+- k3s kubectl get node
 deploy:
   skip_cleanup: true
   provider: npm
