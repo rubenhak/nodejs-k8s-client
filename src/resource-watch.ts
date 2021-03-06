@@ -125,8 +125,6 @@ export class ResourceWatch
                 }
                 this._scheduleTimeout = 0;
 
-                this._logger.error('[_runWatch] Stream KIND: %s.', this._stream.constructor.name);
-
                 this._stream
                     .pipe(ndjson.parse())
                     .on('data', (data) => {

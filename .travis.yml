@@ -20,6 +20,3 @@ deploy:
   on:
     branch: master
     tags: true
-# install:
-#   - npm i -g mocha@6.2.3
-#   - npm install
