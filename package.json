@@ -1,8 +1,12 @@
 {
   "name": "k8s-super-client",
   "version": "2.0.1",
-  "description": "",
-  "main": "index.js",
+  "description": "Kubernetes Client Library",
+  "main": "dist/index.js",
+  "types": "dist",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/**/*.ts'",
     "build": "tsc",
