@@ -4,6 +4,7 @@ import { Promise } from 'the-promise';
 import { v4 as uuidv4 } from 'uuid';
 import * as ndjson from 'ndjson';
 import { ResourceAccessor, ResourceScope } from './resource-accessor';
+import { IncomingMessage } from 'http';
 
 export type WatchCallback = (action: DeltaAction, data: any) => void;
 export type ConnectCallback = (resourceAccessor : ResourceAccessor) => void;
@@ -23,7 +24,7 @@ export class ResourceWatch
     private _isScheduled : boolean = false;
     private _scheduleTimeout : number = 100;
     private _isStopped : boolean = false;
-    private _stream : any = null;
+    private _stream : IncomingMessage | null = null;
     private _isDisconnected : boolean = true;
 
     private _cb : WatchCallback;
@@ -92,8 +93,9 @@ export class ResourceWatch
     {
         if (this._stream) {
             this._logger.info('[_closeStream] Destroying...');
-            this._stream.socket.destroy();
+            this._stream.destroy();
             this._stream = null;
+            this._onDisconnect({});
         } else {
             this._logger.info('[_closeStream] No stream');
         }
@@ -115,13 +117,15 @@ export class ResourceWatch
 
         this._scope.request('GET', url, params, null, true)
             .then(result => {
-                this._stream = result.data;
+                this._stream = <IncomingMessage>result.data;
 
                 this._logger.info('[_runWatch] Connected: %s.', this.name);
                 if (this._connectCb) {
                     this._connectCb(this._resourceAccessor);
                 }
                 this._scheduleTimeout = 0;
+
+                this._logger.error('[_runWatch] Stream KIND: %s.', this._stream.constructor.name);
 
                 this._stream
                     .pipe(ndjson.parse())
@@ -132,6 +136,12 @@ export class ResourceWatch
                             return;
                         }
                         this._handleChange(item.type, item.object);
+                    })
+                    .on('close', () => {
+                        this._logger.info('[_runWatch] STREAM :: close...');
+                    })
+                    .on('drain', () => {
+                        this._logger.info('[_runWatch] STREAM :: drain...');
                     })
                     .on('finish', () => {
                         this._logger.info('[_runWatch] STREAM :: finish...');

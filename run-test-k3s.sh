@@ -11,6 +11,6 @@ export K8S_CA_DATA=$(kubectl config view --raw -o jsonpath="{.clusters[?(@.name=
 
 export K8S_TOKEN=$(kubectl -n kube-system describe secret $(kubectl --kubeconfig=mock/kube_config.yaml -n kube-system get secret | (grep k8sadmin || echo "$_") | awk '{print $1}') | grep token: | awk '{print $2}')
 
-export TS_NODE_COMPILER_OPTIONS="{\"module\": \"commonjs\" }"
-mocha -r ./node_modules/ts-node/register 'test/**/*.ts'
+npm test --
+# -g watch
 
