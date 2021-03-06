@@ -8,8 +8,7 @@ before_script:
 - kubectl config view
 - kubectl create serviceaccount k8sadmin -n kube-system
 - kubectl create clusterrolebinding k8sadmin --clusterrole=cluster-admin --serviceaccount=kube-system:k8sadmin
-- env
-- sleep 15
+- sleep 20
 - export K8S_APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==default)].cluster.server}")
 - export K8S_CA_DATA=$(kubectl config view --raw -o jsonpath="{.clusters[?(@.name==default)].cluster['certificate-authority-data']}")
 - export K8S_TOKEN=$(kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | (grep k8sadmin || echo "$_") | awk '{print $1}') | grep token: | awk '{print $2}')
