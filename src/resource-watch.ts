@@ -30,7 +30,7 @@ export class ResourceWatch
     private _connectCb : ConnectCallback;
     private _disconnectCb : DisconnectCallback;
 
-    private _waitCloseResolveCb : any;
+    private _waitCloseResolveCb : (() => void)[] = [];
 
     private _scope: ResourceScope;
 
@@ -80,10 +80,10 @@ export class ResourceWatch
             if (this._isDisconnected) {
                 resolve();
             } else {
-                this._waitCloseResolveCb = () => {
+                this._waitCloseResolveCb.push(() => {
                     this._logger.info('[waitClose] Finished: %s', this.name);
                     resolve();
-                };
+                });
             }
         });
     }
@@ -193,6 +193,8 @@ export class ResourceWatch
 
     private _onDisconnect(data)
     {
+        this.logger.info('[_onDisconnect] ', data);
+
         if (this._isDisconnected) {
             return;
         }
@@ -210,10 +212,10 @@ export class ResourceWatch
         this._tryReconnect();
 
         if (this._isStopped) {
-            if (this._waitCloseResolveCb) {
-                let x = this._waitCloseResolveCb;
-                this._waitCloseResolveCb = null;
-                x();
+            let cbs = this._waitCloseResolveCb;
+            this._waitCloseResolveCb = [];
+            for(let cb of cbs) {
+                cb();
             }
         }
     }
