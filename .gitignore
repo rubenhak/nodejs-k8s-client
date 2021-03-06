@@ -62,3 +62,9 @@ typings/
 
 
 .history
+
+.DS_Store
+
+dist
+
+.vscode

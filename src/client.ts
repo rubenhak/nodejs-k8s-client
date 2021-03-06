@@ -1,20 +1,35 @@
-const _ = require('the-lodash');
-const Promise = require('the-promise');
-const fs = require('fs');
-const axios = require('axios');
-const https = require('https');
+import _ from 'the-lodash'
+import { ILogger } from 'the-logger';
+import { Promise } from 'the-promise';
 
-const ResourceAccessor = require('./resource-accessor');
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+ 
+import { Agent as HttpsAgent, AgentOptions } from 'https';
 
-class KubernetesClient
+import { KubernetesError } from "./types";
+import { ResourceAccessor } from './resource-accessor';
+import { ResourceWatch } from './resource-watch';
+
+export interface KubernetesClientConfig {
+    httpAgent? : AgentOptions,
+    server? : string,
+    token? : string,
+}
+
+export class KubernetesClient
 {
-    constructor(logger, config)
+    private _logger : ILogger;
+    private _config : KubernetesClientConfig;
+    private _apiGroups : Record<string, ApiGroup> = {};
+
+    private _watches : Record<string, ResourceWatch> = {};
+
+    private _rootApiVersion : string | null = null;
+    
+    constructor(logger : ILogger, config : KubernetesClientConfig)
     {
         this._logger = logger;
         this._config = config;
-        this._apiGroups = {};
-
-        this._watches = {};
 
         this._logger.info('[construct] ');
         this._logger.silly('[construct] ', this._config);
@@ -121,17 +136,17 @@ class KubernetesClient
 
     close()
     {
-        for(var watch of _.values(this._watches))
+        for(let watch of _.values(this._watches))
         {
             watch.stop();
         }
     }
 
-    _discoverApiVersions()
+    private _discoverApiVersions()
     {
         return Promise.resolve()
             .then(() => this._discoverRootApi())
-            .then(() => this._fetchApiGroup(null, this._rootApiVersion))
+            .then(() => this._fetchApiGroup(null, this._rootApiVersion!))
             .then(() => this._discoverApiGroups())
             .then(apis => {
                 return Promise.parallel(apis, x => this._fetchApiGroup(x.name, x.version));
@@ -139,22 +154,22 @@ class KubernetesClient
             ;
     }
 
-    _discoverRootApi()
+    private _discoverRootApi()
     {
         return this.request('GET', '/api')
             .then(result => {
                 this.logger.verbose("[discoverRootApi] ", result);
-                this._rootApiVersion = _.last(result.versions);
+                this._rootApiVersion = <string> _.last(result.versions);
                 this.logger.verbose("[discoverRootApi] root version: %s", this._rootApiVersion);
             })
     }
 
-    _discoverApiGroups()
+    private _discoverApiGroups() : Promise<ApiInfo[]>
     {
         return this.request('GET', '/apis')
             .then(result => {
-                var apis = [];
-                for(var groupInfo of result.groups)
+                let apis : ApiInfo[] = [];
+                for(let groupInfo of result.groups)
                 {
                     if (groupInfo.preferredVersion.version) {
                         this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, groupInfo.preferredVersion.version);
@@ -168,9 +183,9 @@ class KubernetesClient
             })
     }
 
-    _fetchApiGroup(group, version)
+    private _fetchApiGroup(group: string | null, version: string)
     {
-        var url;
+        let url;
         if (group) {
             url = '/apis/' + group + '/' + version;
         } else {
@@ -178,9 +193,9 @@ class KubernetesClient
         }
         return this.request('GET', url)
             .then(result => {
-                for(var resource of result.resources)
+                for(let resource of result.resources)
                 {
-                    var nameParts = resource.name.split('/');
+                    let nameParts = resource.name.split('/');
                     // this.logger.info("[fetchApiGroup] nameParts.name :: ", resource.name, nameParts);
                     if (nameParts.length == 1) {
                         this.logger.silly("[fetchApiGroup] ", resource);
@@ -190,7 +205,7 @@ class KubernetesClient
             })
     }
 
-    setupApiGroup(kindName, apiName, apiVersion, pluralName)
+    setupApiGroup(kindName: string, apiName: string | null, apiVersion: string, pluralName: string)
     {
         if (apiName) {
             this.logger.info("[setupApiGroup] %s :: %s :: %s :: %s...", kindName, apiName, apiVersion, pluralName)
@@ -200,14 +215,18 @@ class KubernetesClient
 
         if (!this._apiGroups[kindName]) {
             this._apiGroups[kindName] = {
-                default: null,
                 apiNames: {}
             };
         }
 
-        var client = new ResourceAccessor(this, apiName, apiVersion, pluralName, kindName);
+        const scope = {
+            watches: this._watches,
+            request: this.request.bind(this)
+        }
 
-        var apiGroupInfo = {
+        let client = new ResourceAccessor(this, apiName, apiVersion, pluralName, kindName, scope);
+
+        let apiGroupInfo : ApiGroupInfo = {
             pluralName: pluralName,
             version: apiVersion,
             client: client
@@ -221,14 +240,14 @@ class KubernetesClient
         return client;
     }
 
-    client(kindName, apiName)
+    client(kindName: string, apiName?: string) : ResourceAccessor | null
     {
-        var kindInfo = this._apiGroups[kindName];
+        let kindInfo = this._apiGroups[kindName];
         if (!kindInfo) {
             return null;
         }
 
-        var apiGroupInfo;
+        let apiGroupInfo : ApiGroupInfo | undefined;
         if (apiName) {
             apiGroupInfo = kindInfo.apiNames[apiName];
         } else {
@@ -242,18 +261,18 @@ class KubernetesClient
         return apiGroupInfo.client;
     }
 
-    request(method, url, params, body, useStream)
+    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean)
     {
         this._logger.info('[request] %s => %s...', method, url);
 
-        var httpAgentParams = this._config.httpAgent || {};
-        var options = {
+        let httpAgentParams = this._config.httpAgent || {};
+        let options : AxiosRequestConfig = {
             method: method,
             baseURL: this._config.server,
             url: url,
             headers: {
             },
-            httpsAgent: new https.Agent(httpAgentParams)
+            httpsAgent: new HttpsAgent(httpAgentParams)
         };
 
         if (this._config.token)
@@ -272,7 +291,8 @@ class KubernetesClient
         }
 
         this._logger.silly('[request] Begin', options);
-        return axios(options)
+        return Promise.resolve()
+            .then(() => axios(options))
             .then(result => {
                 this._logger.silly('[request] RAW RESULT:', result);
 
@@ -280,21 +300,21 @@ class KubernetesClient
                     return result;
                 }
 
-                result = result.data;
-                if (!result) {
+                const resultData = result.data;
+                if (!resultData) {
                     throw new Error("No result");
                 }
-                if (result.kind == "Status") {
-                    if (result.status == "Failure") {
-                        throw new KubernetesError(result.message, result.code);
+                if (resultData.kind == "Status") {
+                    if (resultData.status == "Failure") {
+                        throw new KubernetesError(resultData.message, resultData.code);
                     }
                 }
-                return result;
+                return resultData;
             })
             .catch(reason => {
-                var response = reason.response;
-                var status = 0;
-                var errorMessage = '';
+                let response = reason.response;
+                let status = 0;
+                let errorMessage = '';
                 if (response) {
                     status = response.status;
                     errorMessage = response.statusText;
@@ -342,29 +362,23 @@ class KubernetesClient
                 };
             });
     }
-
-    static connectFromPod(logger)
-    {
-        var k8sConfig = {
-            server: 'https://' + process.env.KUBERNETES_SERVICE_HOST + ':' + process.env.KUBERNETES_SERVICE_PORT_HTTPS,
-            token: fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/token', 'utf8'),
-            caData: fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt', 'utf8')
-        };
-        var client = new KubernetesClient(logger, k8sConfig);
-        return client;
-    }
 }
 
-class KubernetesError extends Error
+interface ApiInfo
 {
-    constructor (message, code)
-    {
-        super(message)
-        Error.captureStackTrace( this, this.constructor )
-        this.name = 'KubernetesError'
-        this.code = code
-    }
+    name: string,
+    version: string
 }
 
+interface ApiGroup
+{
+    default?: ApiGroupInfo,
+    apiNames: Record<string, ApiGroupInfo>
+};
 
-module.exports = KubernetesClient;
+interface ApiGroupInfo
+{
+    pluralName: string,
+    version: string,
+    client: ResourceAccessor
+}
