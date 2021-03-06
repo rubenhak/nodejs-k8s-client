@@ -17,9 +17,12 @@ describe('pod-query', function() {
 
                 // console.log(result.map(x => x.metadata.name));
 
-                should(result).matchEvery(x => x.metadata.namespace == "kube-system");
-                should(result).matchAny(x => _.startsWith(x.metadata.name, "coredns"));
-                should(result).matchAny(x => _.startsWith(x.metadata.name, "kube-proxy"));
+                const namespaces = result.map(x => x.metadata.namespace);
+                const names = result.map(x => x.metadata.name);
+
+                should(namespaces).matchEvery(x => x == "kube-system");
+                should(names).matchAny(x => _.startsWith(x, "coredns"));
+                should(names).matchAny(x => _.startsWith(x, "metrics"));
             });
 
     });

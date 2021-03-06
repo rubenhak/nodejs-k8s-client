@@ -5,6 +5,7 @@ before_script:
 - curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
 - ls -la ~/
 - k3s kubectl get node
+- kubectl config view
 deploy:
   skip_cleanup: true
   provider: npm

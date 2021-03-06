@@ -3,26 +3,14 @@ MY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE
 MY_DIR="$(dirname $MY_PATH)"
 cd $MY_DIR
 
-rm -rf ./logs
+echo "*** Creating K3s Cluster..."
+./run-k3s.sh
 
-export K8S_CONFIG_DATA=$(docker exec k0s cat /var/lib/k0s/pki/admin.conf)
-echo "${K8S_CONFIG_DATA}" > mock/kube_config.yaml
+echo "*** Pausing..."
+sleep 30
 
-kubectl create serviceaccount k8sadmin --kubeconfig=mock/kube_config.yaml -n kube-system
-kubectl create clusterrolebinding k8sadmin --kubeconfig=mock/kube_config.yaml --clusterrole=cluster-admin --serviceaccount=kube-system:k8sadmin
+echo "*** Running Tests..."
+./run-test-k3s.sh
 
-export CLUSTER_NAME="local"
-export K8S_APISERVER=$(kubectl config view --kubeconfig=mock/kube_config.yaml -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster.server}")
-export K8S_CA_DATA=$(kubectl config view --raw --kubeconfig=mock/kube_config.yaml -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster['certificate-authority-data']}")
-# export K8S_TOKEN=$(kubectl get secrets --kubeconfig=mock/kube_config.yaml -o jsonpath="{.items[?(@.metadata.annotations['kubernetes\.io/service-account\.name']=='default')].data.token}"|base64 --decode)
-
-export K8S_TOKEN=$(kubectl --kubeconfig=mock/kube_config.yaml -n kube-system describe secret $(kubectl --kubeconfig=mock/kube_config.yaml -n kube-system get secret | (grep k8sadmin || echo "$_") | awk '{print $1}') | grep token: | awk '{print $2}')
-
-# rm mock/kube_config.yaml
-
-# env 
-# echo "${K8S_CA_DATA}"
-
-export TS_NODE_COMPILER_OPTIONS="{\"module\": \"commonjs\" }"
-mocha -r ./node_modules/ts-node/register 'test/**/*.ts'
-
+echo "*** Cleaning Up..."
+./stop-k3s.sh
