@@ -24,3 +24,14 @@ $ brew install k3d helm@3 kubectl
 $ k3d cluster create
 $ kubectl get nodes
 ```
+
+## Publishing
+
+```sh
+$ ./publish.sh
+```
+
+### Updating NPM Key
+```sh
+$ travis encrypt <NPM-KEY-GOES-HERE> --add deploy.api_key
+```
