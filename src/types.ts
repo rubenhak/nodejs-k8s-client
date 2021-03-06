@@ -1,3 +1,16 @@
+export interface KubernetesObject
+{
+    kind: string,
+    apiVersion: string,
+    metadata: {
+        name: string,
+        namespace?: string,
+        labels?: Record<string, string>,
+        annotations?: Record<string, string>
+    },
+    spec: object,
+    status?: object
+}
 
 export class KubernetesError extends Error
 {
@@ -11,3 +24,4 @@ export class KubernetesError extends Error
         this.code = code
     }
 }
+

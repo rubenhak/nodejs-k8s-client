@@ -5,11 +5,12 @@ import { Promise } from 'the-promise';
 import { KubernetesClient } from './client';
 
 import { ConnectCallback, DisconnectCallback, ResourceWatch, WatchCallback } from './resource-watch';
+import { KubernetesObject } from './types';
 
 export interface ResourceScope
 {
     watches : Record<string, ResourceWatch>;
-    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean);
+    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean)  : Promise<any>;
 }
 
 export class ResourceAccessor
@@ -51,16 +52,25 @@ export class ResourceAccessor
     queryAll(namespace?: string, labelFilter? : any)
     {
         let uriParts = this._makeUriParts(namespace);
-        return this._getRequest(uriParts, { labelSelector: labelFilter })
+        return this._getRequest<any>(uriParts, { labelSelector: labelFilter })
             .then(result => {
                 if (!result) {
-                    return [];
+                    return <KubernetesObject[]>[];
                 }
-                return result.items;
+                for(let x of result.items)
+                {
+                    if (!x.kind) {
+                        x.kind = this.kindName;
+                    }
+                    if (!x.apiVersion) {
+                        x.apiVersion = result.apiVersion;
+                    }
+                }
+                return <KubernetesObject[]>result.items;
             });
     }
     
-    watchAll(namespace: string, cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback)
+    watchAll(namespace: string | null, cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback)
     {
         let watch = new ResourceWatch(this._logger.sublogger("Watch"),
             this,
@@ -73,14 +83,14 @@ export class ResourceAccessor
         return watch;
     }
 
-    query(namespace: string, name: string)
+    query(namespace: string | null, name: string)
     {
         let uriParts = this._makeUriParts(namespace);
         uriParts.push(name)
-        return this._getRequest(uriParts);
+        return this._getRequest<KubernetesObject>(uriParts);
     }
 
-    create(namespace: string, body: any)
+    create(namespace: string | null, body: any)
     {
         let uriParts = this._makeUriParts(namespace);
         
@@ -104,7 +114,7 @@ export class ResourceAccessor
         return this._putRequest(uriParts, {}, newBody)
     }
 
-    private _getRequest(uriParts: string[], params? : Record<string, any>)
+    private _getRequest<T>(uriParts: string[], params? : Record<string, any>)
     {
         let url = this._joinUrls(uriParts);
         this.logger.info('[_getRequest] %s', url);
@@ -118,28 +128,28 @@ export class ResourceAccessor
                 params.labelSelector = selectorParts.join(',');
             }
         }
-        return this._parent.request('GET', url, params);
+        return this._parent.request<T>('GET', url, params);
     }
 
-    private _postRequest(uriParts, params, body)
+    private _postRequest(uriParts: string[], params? : Record<string, any>, body? : Record<string, any> | null)
     {
         let url = this._joinUrls(uriParts);
         this.logger.info('[_postRequest] %s', url);
-        return this._parent.request('POST', url, params, body);
+        return this._parent.request<any>('POST', url, params, body);
     }
 
-    private _deleteRequest(uriParts, params)
+    private _deleteRequest(uriParts: string[], params? : Record<string, any>)
     {
         let url = this._joinUrls(uriParts);
         this.logger.info('[_deleteRequest] %s', url);
-        return this._parent.request('DELETE', url, params);
+        return this._parent.request<any>('DELETE', url, params);
     }
 
-    private _putRequest(uriParts, params, body)
+    private _putRequest(uriParts: string[], params? : Record<string, any>, body? : Record<string, any> | null)
     {
         let url = this._joinUrls(uriParts);
         this.logger.info('[_putRequest] %s', url);
-        return this._parent.request('PUT', url, params, body);
+        return this._parent.request<any>('PUT', url, params, body);
     }
 
     private _setupBody(body: any)
@@ -162,8 +172,8 @@ export class ResourceAccessor
         } else {
             prefixParts = ['', 'apis', this._apiName, this._apiVersion];
         }
-        uriParts = _.concat(prefixParts, uriParts);
-        let url = uriParts.join('/');
+        let newUriParts = _.concat(prefixParts, uriParts);
+        let url = newUriParts.join('/');
         return url;
     }
 

@@ -44,6 +44,14 @@ describe('deployment-watch', function() {
 
                 should(watchResult.result).matchEvery(x => x.metadata.namespace == "kube-system");
                 should(watchResult.result).matchAny(x => x.metadata.name == "coredns");
+
+                for(let x of watchResult.result)
+                {
+                    should(x).be.ok();
+                    should(x.apiVersion).startWith('apps/')
+                    should(x.kind).be.equal('Deployment')
+                    should(x.metadata.namespace).be.equal('kube-system')
+                }
             });
             
     })

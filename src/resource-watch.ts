@@ -5,8 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 import * as ndjson from 'ndjson';
 import { ResourceAccessor, ResourceScope } from './resource-accessor';
 import { IncomingMessage } from 'http';
+import { KubernetesObject } from './types';
 
-export type WatchCallback = (action: DeltaAction, data: any) => void;
+export type WatchCallback = (action: DeltaAction, data: KubernetesObject) => void;
 export type ConnectCallback = (resourceAccessor : ResourceAccessor) => void;
 export type DisconnectCallback = (resourceAccessor : ResourceAccessor, reason: {}) => void;
 
@@ -16,10 +17,10 @@ export class ResourceWatch
     private _resourceAccessor : ResourceAccessor;
 
     private _id : string;
-    private _namespace : string;
+    private _namespace : string | null;
 
-    private _snapshot : any = {};
-    private _newSnapshot : any;
+    private _snapshot : Record<string, any> = {};
+    private _newSnapshot : Record<string, any> = {};
     private _recovering : boolean = false;
     private _isScheduled : boolean = false;
     private _scheduleTimeout : number = 100;
@@ -37,7 +38,7 @@ export class ResourceWatch
 
     private _recoveryTimeout: NodeJS.Timeout | null = null;
 
-    constructor(logger : ILogger, resourceAccessor: ResourceAccessor, namespace: string, 
+    constructor(logger : ILogger, resourceAccessor: ResourceAccessor, namespace: string | null, 
         cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback,
         scope: ResourceScope)
     {
@@ -169,7 +170,7 @@ export class ResourceWatch
             })
     }
 
-    private _handleChange(action: DeltaAction, data: any)
+    private _handleChange(action: DeltaAction, data: KubernetesObject)
     {
         this._logger.info('[_handleChange] %s. %s :: %s...', this.name, action, data.metadata.name);
 
@@ -186,7 +187,7 @@ export class ResourceWatch
         }
     }
 
-    private _applyToSnapshot(snapshot: any, action : DeltaAction, data: any)
+    private _applyToSnapshot(snapshot: Record<string, any>, action : DeltaAction, data: any)
     {
         if (action == DeltaAction.Added || action == DeltaAction.Modified) {
             snapshot[data.metadata.name] = data;
@@ -199,7 +200,7 @@ export class ResourceWatch
         throw new Error("Unknown action: " + action);
     }
 
-    private _onDisconnect(data)
+    private _onDisconnect(data: any)
     {
         this.logger.info('[_onDisconnect] ', data);
 
@@ -269,7 +270,7 @@ export class ResourceWatch
         this._scheduleRecoveryTimer(1000);
     }
 
-    private _scheduleRecoveryTimer(duration)
+    private _scheduleRecoveryTimer(duration : number)
     {
         this._logger.silly('[_scheduleRecoveryTimer] %s. timeout: %s...', this.name, duration);
         this._stopTimer();
@@ -299,7 +300,7 @@ export class ResourceWatch
         }
 
         this._recovering = false;
-        this._newSnapshot = null;
+        this._newSnapshot = {};
 
         this._logger.info('[_handleRecovery] %s recovery completed.', this.name);
     }
@@ -312,7 +313,7 @@ export class ResourceWatch
         }
     }
 
-    private _produceDelta(current, desired) : DeltaItem[]
+    private _produceDelta(current: Record<string, any>, desired: Record<string, any>) : DeltaItem[]
     {
         let delta : DeltaItem[] = [];
         for(let x of _.keys(current)) {
@@ -345,7 +346,7 @@ export class ResourceWatch
 interface DeltaItem
 {
     action: DeltaAction,
-    data: any
+    data: KubernetesObject
 }
 
 export enum DeltaAction
@@ -358,5 +359,5 @@ export enum DeltaAction
 interface K8sWatchItem
 {
     type: DeltaAction,
-    object: any
+    object: KubernetesObject
 }

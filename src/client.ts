@@ -156,7 +156,7 @@ export class KubernetesClient
 
     private _discoverRootApi()
     {
-        return this.request('GET', '/api')
+        return this.request<any>('GET', '/api')
             .then(result => {
                 this.logger.verbose("[discoverRootApi] ", result);
                 this._rootApiVersion = <string> _.last(result.versions);
@@ -166,7 +166,7 @@ export class KubernetesClient
 
     private _discoverApiGroups() : Promise<ApiInfo[]>
     {
-        return this.request('GET', '/apis')
+        return this.request<any>('GET', '/apis')
             .then(result => {
                 let apis : ApiInfo[] = [];
                 for(let groupInfo of result.groups)
@@ -191,7 +191,7 @@ export class KubernetesClient
         } else {
             url = '/api/' + version;
         }
-        return this.request('GET', url)
+        return this.request<any>('GET', url)
             .then(result => {
                 for(let resource of result.resources)
                 {
@@ -261,7 +261,7 @@ export class KubernetesClient
         return apiGroupInfo.client;
     }
 
-    request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean)
+    request<T>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
     {
         this._logger.info('[request] %s => %s...', method, url);
 
@@ -309,7 +309,7 @@ export class KubernetesClient
                         throw new KubernetesError(resultData.message, resultData.code);
                     }
                 }
-                return resultData;
+                return <T>resultData;
             })
             .catch(reason => {
                 let response = reason.response;
