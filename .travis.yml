@@ -9,8 +9,8 @@ before_script:
 - kubectl create serviceaccount k8sadmin -n kube-system
 - kubectl create clusterrolebinding k8sadmin --clusterrole=cluster-admin --serviceaccount=kube-system:k8sadmin
 - sleep 20
-- export K8S_APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==default)].cluster.server}")
-- export K8S_CA_DATA=$(kubectl config view --raw -o jsonpath="{.clusters[?(@.name==default)].cluster['certificate-authority-data']}")
+- export K8S_APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name=='default')].cluster.server}")
+- export K8S_CA_DATA=$(kubectl config view --raw -o jsonpath="{.clusters[?(@.name=='default')].cluster['certificate-authority-data']}")
 - env
 deploy:
   skip_cleanup: true
