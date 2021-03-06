@@ -240,7 +240,7 @@ export class KubernetesClient
         return client;
     }
 
-    client(kindName: string, apiName?: string) : ResourceAccessor | null
+    client(kindName: string, apiName?: string | null) : ResourceAccessor | null
     {
         let kindInfo = this._apiGroups[kindName];
         if (!kindInfo) {
