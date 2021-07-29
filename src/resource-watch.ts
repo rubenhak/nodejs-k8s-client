@@ -67,14 +67,14 @@ export class ResourceWatch
 
     start()
     {
-        this._logger.info('[start] %s...', this.name);
+        this._logger.info('[start] API: %s. Start.', this.name);
         // this._scope.watches[this._id] = this;
         this._runWatch();
     }
 
     stop()
     {
-        this._logger.info('[stop] %s...', this.name);
+        this._logger.info('[stop] API: %s. Stop.', this.name);
         this._isStopped = true;
         this._stopRecoveryTimer();
         this._stopRunWatchTimer();
@@ -89,13 +89,13 @@ export class ResourceWatch
 
     waitClose()
     {
-        this._logger.info('[waitClose] %s...', this.name);
+        this._logger.info('[waitClose] API: %s. Waiting...', this.name);
         return Promise.construct((resolve, reject) => {
             if (this._isDisconnected) {
                 resolve();
             } else {
                 this._waitCloseResolveCb.push(() => {
-                    this._logger.info('[waitClose] Finished: %s', this.name);
+                    this._logger.info('[waitClose] API: %s. Finished.', this.name);
                     resolve();
                 });
             }
@@ -105,12 +105,12 @@ export class ResourceWatch
     private _closeStream()
     {
         if (this._stream) {
-            this._logger.info('[_closeStream] Destroying...');
+            this._logger.info('[_closeStream] API: %s. Destroying...', this.name);
             this._stream.destroy();
             this._stream = null;
             this._onDisconnect({});
         } else {
-            this._logger.info('[_closeStream] No stream');
+            this._logger.info('[_closeStream] API: %s.No stream', this.name);
         }
     }
 
@@ -133,13 +133,13 @@ export class ResourceWatch
         this._scope.request('GET', url, params, null, true)
             .then(result => {
                 if (!result) {
-                    this._logger.error('[_runWatch] EMPTY RESULT: %s.', this.name);
+                    this._logger.error('[_runWatch] API: %s. EMPTY RESULT.', this.name);
                     return;
                 }
 
                 this._stream = <IncomingMessage>result.data;
 
-                this._logger.info('[_runWatch] Connected: %s.', this.name);
+                this._logger.info('[_runWatch] API: %s. Connected', this.name);
                 if (this._connectCb) {
                     this._connectCb(this._resourceAccessor);
                 }
@@ -150,26 +150,26 @@ export class ResourceWatch
                     .on('data', (data) => {
                         const item = <K8sWatchItem>data;
                         if (!data.object) {
-                            this._logger.error('[_runWatch] MISSING DATA for %s.', this.name, data);
+                            this._logger.error('[_runWatch] API: %s. Missing Data:', this.name, data);
                             return;
                         }
                         this._handleChange(item.type, item.object);
                     })
                     .on('close', () => {
-                        this._logger.info('[_runWatch] STREAM :: close...');
+                        this._logger.info('[_runWatch] API: %s. STREAM :: close...', this.name);
                     })
                     .on('drain', () => {
-                        this._logger.info('[_runWatch] STREAM :: drain...');
+                        this._logger.info('[_runWatch] API: %s. STREAM :: drain...', this.name);
                     })
                     .on('finish', () => {
-                        this._logger.info('[_runWatch] STREAM :: finish...');
+                        this._logger.info('[_runWatch] API: %s. STREAM :: finish...', this.name);
                     })
                     .on('end', () => {
-                        this._logger.info('[_runWatch] STREAM :: end...');
+                        this._logger.info('[_runWatch] API: %s. STREAM :: end...', this.name);
                         this._onDisconnect({});
                     })
                     .on('error', () => {
-                        this._logger.error('[_runWatch] STREAM :: error...');
+                        this._logger.error('[_runWatch] API: %s. STREAM :: error...', this.name);
                         this._onDisconnect({});
                     });
 
@@ -179,12 +179,23 @@ export class ResourceWatch
             })
             .catch(reason => {
                 let data : Record<string, any> = {};
+                let isKnownError: boolean = false;
                 if (reason.status) {
-                    this.logger.error("[_runWatch] Error Code: %s", reason.status);
+                    this.logger.error("[_runWatch] API: %s. Error Code: %s", this.name, reason.status);
                     data.status = reason.status;
-                } else {
-                    this.logger.error("[_runWatch] Error: ", reason);
+                    isKnownError = true;
                 }
+                
+                if (reason.message) {
+                    this.logger.error("[_runWatch] API: %s. Error Message: %s", this.name, reason.message);
+                    data.message = reason.message;
+                    isKnownError = true;
+                }
+
+                if (!isKnownError) {
+                    this.logger.error("[_runWatch] API: %s. Error: ", this.name, reason);
+                }
+
                 this._onDisconnect(data);
             })
     }
@@ -253,7 +264,7 @@ export class ResourceWatch
         if (this._isStopped) {
             return;
         }
-        this._logger.info('[_tryReconnect] %s...', this.name);
+        this._logger.info('[_tryReconnect] API: %s. Reconnect.', this.name);
         this._recovering = true;
         this._newSnapshot = {};
         this._scheduleRunWatch();
@@ -272,7 +283,7 @@ export class ResourceWatch
             this._scheduleTimeout = this._scheduleTimeout * 2;
         }
         this._scheduleTimeout = Math.min(this._scheduleTimeout, 1 * 60 * 1000);
-        this._logger.silly('[_scheduleRunWatch] timeout: %s...', this._scheduleTimeout);
+        this._logger.silly('[_scheduleRunWatch] API: %s. timeout: %s...', this.name, this._scheduleTimeout);
 
         this._runWatchTimer = setTimeout(() => {
                 this._runWatch();
@@ -285,27 +296,27 @@ export class ResourceWatch
         if (!this._recovering) {
             return;
         }
-        this._logger.info('[_startRecoveryCountdown] %s...', this.name);
+        this._logger.info('[_startRecoveryCountdown] API: %s. Recovery Countdown Scheduled', this.name);
         this._scheduleRecoveryTimer(1000);
     }
 
     private _scheduleRecoveryTimer(duration : number)
     {
-        this._logger.silly('[_scheduleRecoveryTimer] %s. timeout: %s...', this.name, duration);
+        this._logger.silly('[_scheduleRecoveryTimer] API: %s. timeout: %s...', this.name, duration);
         this._stopRecoveryTimer();
         this._recoveryTimer = setTimeout(this._handleRecovery.bind(this), duration);
     }
 
     private _handleRecovery()
     {
-        this._logger.info('[_handleRecovery] %s...', this.name);
+        this._logger.info('[_handleRecovery] API: %s...', this.name);
         this._stopRecoveryTimer();
 
-        this._logger.silly('[_handleRecovery] %s. Snapshot: ', this.name, this._snapshot);
-        this._logger.silly('[_handleRecovery] %s. NewSnapshot: ', this.name, this._newSnapshot);
+        this._logger.silly('[_handleRecovery] API: %s. Snapshot: ', this.name, this._snapshot);
+        this._logger.silly('[_handleRecovery] API: %s. NewSnapshot: ', this.name, this._newSnapshot);
 
         let delta = this._produceDelta(this._snapshot, this._newSnapshot);
-        this._logger.verbose('[_handleRecovery] %s. delta: ', this.name, delta);
+        this._logger.verbose('[_handleRecovery] API: %s. delta: ', this.name, delta);
 
         for(let x of delta) {
             this._applyToSnapshot(this._snapshot, x.action, x.data);
@@ -314,14 +325,14 @@ export class ResourceWatch
 
         let finalDelta = this._produceDelta(this._snapshot, this._newSnapshot);
         if (finalDelta.length > 0) {
-            this._logger.info('[_handleRecovery] %s. FINAL delta. should be zero: ', this.name, finalDelta);
+            this._logger.info('[_handleRecovery] API: %s. FINAL delta. should be zero: ', this.name, finalDelta);
             throw new Error("Final Delta After Recover Should Be Empty!");
         }
 
         this._recovering = false;
         this._newSnapshot = {};
 
-        this._logger.info('[_handleRecovery] %s recovery completed.', this.name);
+        this._logger.info('[_handleRecovery] API: %s. Recovery completed.', this.name);
     }
 
     private _stopRunWatchTimer()
