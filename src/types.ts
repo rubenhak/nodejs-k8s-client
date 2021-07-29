@@ -6,10 +6,13 @@ export interface KubernetesObject
         name: string,
         namespace?: string,
         labels?: Record<string, string>,
-        annotations?: Record<string, string>
+        annotations?: Record<string, string>,
+        [x : string]: any
     },
-    spec: object,
+    spec?: object,
     status?: object
+    data?: object,
+    [x : string]: any
 }
 
 export class KubernetesError extends Error
