@@ -39,6 +39,8 @@ export class ResourceWatch
     private _runWatchTimer: NodeJS.Timeout | null = null;
     private _recoveryTimer: NodeJS.Timeout | null = null;
 
+    private _name : string;
+
     constructor(logger : ILogger, resourceAccessor: ResourceAccessor, namespace: string | null, 
         cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback,
         closeCb: CloseCallback,
@@ -52,6 +54,7 @@ export class ResourceWatch
         this._disconnectCb = disconnectCb;
         this._closeCb = closeCb;
         this._scope = scope;
+        this._name = `${this._resourceAccessor.apiName}::${this._resourceAccessor.kindName}`
     }
 
     get logger() {
@@ -59,7 +62,7 @@ export class ResourceWatch
     }
 
     get name() {
-        return this._resourceAccessor.kindName
+        return this._name;
     }
 
     start()
@@ -188,7 +191,7 @@ export class ResourceWatch
 
     private _handleChange(action: DeltaAction, data: KubernetesObject)
     {
-        this._logger.info('[_handleChange] %s. %s :: %s...', this.name, action, data.metadata.name);
+        this._logger.silly('[_handleChange] %s. %s :: %s...', this.name, action, data.metadata.name);
 
         if (this._recovering) {
             this._applyToSnapshot(this._newSnapshot, action, data);

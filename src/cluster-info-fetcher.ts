@@ -99,7 +99,7 @@ export class ClusterInfoFetcher
     {
         const id = apiId(kindName, apiName);
 
-        this.logger.verbose("[_setupApiGroup] %s :: %s :: %s...", id, apiVersion, pluralName)
+        this.logger.silly("[_setupApiGroup] %s :: %s :: %s...", id, apiVersion, pluralName)
 
         let apiGroupInfo : ApiGroupInfo = {
             id: id,
@@ -130,7 +130,7 @@ export class ClusterInfoFetcher
             return;
         }
 
-        this.logger.info("[_finalizeApi] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
+        this.logger.debug("[_finalizeApi] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
         this._enabledApiGroups[apiGroupInfo.id] = apiGroupInfo;
     }
 

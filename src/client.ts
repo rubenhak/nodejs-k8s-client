@@ -323,7 +323,7 @@ export class KubernetesClient
     
     private _setupResource(apiGroupInfo : ApiGroupInfo) : ResourceAccessor
     {
-        this.logger.info("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
+        this.logger.debug("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
 
         const client = new ResourceAccessor(this,
             apiGroupInfo.apiName,
