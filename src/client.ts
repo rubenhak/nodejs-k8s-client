@@ -53,6 +53,10 @@ export class KubernetesClient
         return this._logger;
     }
 
+    get clusterInfo() {
+        return this._clusterInfo;
+    }
+
     get ApiGroups() : ApiInfo[] {
         return _.values(this._enabledApiGroups);
     }
