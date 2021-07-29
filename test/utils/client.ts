@@ -1,10 +1,10 @@
-import { setupLogger, LoggerOptions } from 'the-logger';
+import { setupLogger, LoggerOptions, LogLevel } from 'the-logger';
 import dotenv from 'dotenv'
 
 import { KubernetesClient, KubernetesClientConfig } from '../../src'
 
-const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
-const logger = setupLogger('test', loggerOptions);
+const loggerOptions = new LoggerOptions().enableFile(false).pretty(true).level(LogLevel.debug);
+const logger = setupLogger('ClientTest', loggerOptions);
 
 const context : Context = {};
 

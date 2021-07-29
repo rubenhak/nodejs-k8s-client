@@ -33,9 +33,9 @@
     "axios": "^0.21.1",
     "dotenv": "^8.2.0",
     "ndjson": "^2.0.0",
-    "the-lodash": "^2.0.8",
+    "the-lodash": "^2.0.9",
     "the-logger": "^2.0.9",
-    "the-promise": "^2.0.12",
+    "the-promise": "^2.0.13",
     "uuid": "^8.2.0"
   },
   "devDependencies": {

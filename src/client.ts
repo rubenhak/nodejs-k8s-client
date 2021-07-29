@@ -1,14 +1,19 @@
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
+import { v4 as uuidv4 } from 'uuid';
 
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
  
 import { Agent as HttpsAgent, AgentOptions } from 'https';
 
 import { KubernetesError } from "./types";
 import { ResourceAccessor } from './resource-accessor';
-import { ResourceWatch } from './resource-watch';
+
+import { ApiGroupInfo, ClusterInfo, ClusterInfoFetcher } from './cluster-info-fetcher';
+import { ClusterInfoWatch } from './cluster-info-watch';
+
+import { apiId } from './utils';
 
 export interface KubernetesClientConfig {
     httpAgent? : AgentOptions,
@@ -16,15 +21,24 @@ export interface KubernetesClientConfig {
     token? : string,
 }
 
+export type ClusterInfoWatchCallback = (isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor) => any;
+
 export class KubernetesClient
 {
     private _logger : ILogger;
     private _config : KubernetesClientConfig;
-    private _apiGroups : Record<string, ApiGroup> = {};
 
-    private _watches : Record<string, ResourceWatch> = {};
+    private _isClosed: boolean = false;
 
-    private _rootApiVersion : string | null = null;
+    private _clusterInfo : ClusterInfo | null = null;
+    private _enabledApiGroups : Record<string, ApiGroupInfo> = {};
+
+    private _resources: Record<string, ResourceAccessor> = {};
+
+    private _clusterInfoWatches : Record<string, ClusterInfoWatch> = {};
+
+    private _clusterInfoRefreshDelay: number | undefined;
+    private _clusterInfoRefreshTimer: NodeJS.Timeout | null = null;
     
     constructor(logger : ILogger, config : KubernetesClientConfig)
     {
@@ -37,6 +51,10 @@ export class KubernetesClient
 
     get logger() {
         return this._logger;
+    }
+
+    get ApiGroups() : ApiInfo[] {
+        return _.values(this._enabledApiGroups);
     }
 
     get ReplicaSet() {
@@ -112,7 +130,7 @@ export class KubernetesClient
     }
 
     get Ingress() {
-        return this.client('Ingress', 'extensions');
+        return this.client('Ingress', 'networking.k8s.io') || this.client('Ingress', 'extensions');
     }
 
     get HorizontalPodAutoscaler() {
@@ -127,157 +145,221 @@ export class KubernetesClient
         return this.client('CronJob');
     }
 
-    init()
+    init() : Promise<KubernetesClient>
     {
-        return Promise.resolve()
-            .then(() => this._discoverApiVersions())
+        return this._setupClusterResources()
             .then(() => this);
     }
 
     close()
     {
-        for(let watch of _.values(this._watches))
+        this.logger.info("[close]");
+
+        this._isClosed = true;
+
+        this._clusterInfoWatches = {};
+        this._stopClusterInfoRefreshTimer();
+
+        for(let resource of _.values(this._resources)) {
+            resource.close();
+        }
+    }
+
+    watchClusterApi(cb: ClusterInfoWatchCallback, delay? : number)
+    {
+        this.logger.info("[watchClusterApi] ");
+
+        const id = uuidv4();
+
+        let watch = new ClusterInfoWatch(this._logger,
+            this,
+            cb);
+
+        this._clusterInfoWatches[id] = watch;
+
+        Promise.resolve(null)
+            .then(() => {
+                const apis = _.values(this._enabledApiGroups).map(x => ({
+                    api: x,
+                    client: this.client(x.kindName, x.apiName)!
+                }))
+                return Promise.serial(apis, x => {
+                    return watch.notifyApi(true, x.api, x.client);
+                })
+            })
+
+        this._clusterInfoRefreshDelay = delay;
+        this._setupClusterInfoRefreshTimer();
+
+        return {
+            close: () => {
+                delete this._clusterInfoWatches[id];
+
+                if (_.keys(this._clusterInfoWatches).length == 0) {
+                    this._stopClusterInfoRefreshTimer();
+                }
+            }
+        }
+    }
+
+    private _setupClusterInfoRefreshTimer()
+    {
+        if (this._isClosed) {
+            return;
+        }
+        if (this._clusterInfoRefreshTimer) {
+            return;
+        }
+        if (_.keys(this._clusterInfoWatches).length == 0) {
+            return;
+        }
+
+        const delay = this._clusterInfoRefreshDelay || 60 * 60 * 1000;
+
+        this.logger.info("[_setupClusterInfoRefreshTimer] setTimeout. delay: %s", delay);
+        this._clusterInfoRefreshTimer = setTimeout(() => {
+            this._refreshClusterResources()
+                .then(() => {
+                    this._clusterInfoRefreshTimer = null;
+                    this._setupClusterInfoRefreshTimer();
+                })
+        }, delay)
+
+    }
+
+    private _stopClusterInfoRefreshTimer()
+    {
+        this.logger.info("[_stopClusterInfoRefreshTimer]");
+
+        if (this._clusterInfoRefreshTimer) {
+            clearTimeout(this._clusterInfoRefreshTimer!);
+            this._clusterInfoRefreshTimer = null;
+        }
+    }
+
+    private _refreshClusterResources()
+    {
+        return this._setupClusterResources()
+            .then(() => {
+
+            })
+    }
+
+    private _setupClusterResources()
+    {
+        return this._fetchClusterInfo()
+            .then(clusterInfo => {
+                return this._applyClusterInfo(clusterInfo);
+            })
+    }
+
+    private _fetchClusterInfo()
+    {
+        const fetcher = new ClusterInfoFetcher(this.logger, this);
+        return fetcher.perform();
+    }
+
+    private _applyClusterInfo(clusterInfo: ClusterInfo)
+    {
+        const toBeDeleted : ApiGroupInfo[] = [];
+        const toBeCreated : { api: ApiGroupInfo, client?: ResourceAccessor }[] = [];
+
+        for(let api of _.values(clusterInfo.enabledApiGroups))
         {
-            watch.stop();
+            let currApi = this._enabledApiGroups[api.id]
+            if (!currApi) {
+                toBeCreated.push({ api });
+            } else {
+                if (currApi.apiVersion !== api.apiVersion) {
+                    toBeDeleted.push(currApi);
+                    toBeCreated.push({ api });
+                }
+            }
         }
-    }
 
-    private _discoverApiVersions()
-    {
+        for(let currApi of _.values(this._enabledApiGroups))
+        {
+            let api = clusterInfo.enabledApiGroups[currApi.id]
+            if (!api) {
+                toBeDeleted.push(currApi);
+            }
+        }
+
+        this._clusterInfo = clusterInfo;
+        this._enabledApiGroups = clusterInfo.enabledApiGroups;
+
+        for(let api of toBeDeleted)
+        {
+            const client = this._resources[api.id];
+            if (client) {
+                client.close();
+            }
+        }
+
+        for(let api of toBeCreated)
+        {
+            api.client = this._setupResource(api.api);
+        }
+
         return Promise.resolve()
-            .then(() => this._discoverRootApi())
-            .then(() => this._fetchApiGroup(null, this._rootApiVersion!))
-            .then(() => this._discoverApiGroups())
-            .then(apis => {
-                return Promise.parallel(apis, x => this._fetchApiGroup(x.name, x.version));
+            .then(() => {
+                return Promise.serial(toBeDeleted, x => {
+                    this._notifyApi(false, x)
+                })
             })
-            ;
-    }
-
-    private _discoverRootApi()
-    {
-        return this.request<any>('GET', '/api')
-            .then(result => {
-                this.logger.verbose("[discoverRootApi] ", result);
-                this._rootApiVersion = <string> _.last(result.versions);
-                this.logger.verbose("[discoverRootApi] root version: %s", this._rootApiVersion);
+            .then(() => {
+                return Promise.serial(toBeCreated, x => {
+                    this._notifyApi(true, x.api, x.client!)
+                })
             })
     }
 
-    private _discoverApiGroups() : Promise<ApiInfo[]>
+    private _notifyApi(isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor)
     {
-        return this.request<any>('GET', '/apis')
-            .then(result => {
-                let apis : ApiInfo[] = [];
-                for(let groupInfo of result.groups)
-                {
-                    if (groupInfo.preferredVersion.version) {
-                        this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, groupInfo.preferredVersion.version);
-                        apis.push({
-                            name: groupInfo.name,
-                            version: groupInfo.preferredVersion.version
-                        });
-                    }
-                }
-                return apis;
-            })
+        return Promise.serial(_.values(this._clusterInfoWatches), x => {
+            return x.notifyApi(isPresent, apiGroup, client);
+        })
     }
-
-    private _fetchApiGroup(group: string | null, version: string)
+    
+    private _setupResource(apiGroupInfo : ApiGroupInfo) : ResourceAccessor
     {
-        let url;
-        if (group) {
-            url = '/apis/' + group + '/' + version;
-        } else {
-            url = '/api/' + version;
-        }
-        return this.request<any>('GET', url)
-            .then(result => {
-                for(let resource of result.resources)
-                {
-                    let nameParts = resource.name.split('/');
-                    // this.logger.info("[fetchApiGroup] nameParts.name :: ", resource.name, nameParts);
-                    if (nameParts.length == 1) {
-                        this.logger.silly("[fetchApiGroup] ", resource);
-                        this.setupApiGroup(resource.kind, group, version, nameParts[0]);
-                    }
-                }
-            })
-    }
+        this.logger.info("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
 
-    setupApiGroup(kindName: string, apiName: string | null, apiVersion: string, pluralName: string)
-    {
-        if (apiName) {
-            this.logger.info("[setupApiGroup] %s :: %s :: %s :: %s...", kindName, apiName, apiVersion, pluralName)
-        } else {
-            this.logger.info("[setupApiGroup] %s :: %s :: %s...", kindName, apiVersion, pluralName)
-        }
+        const client = new ResourceAccessor(this,
+            apiGroupInfo.apiName,
+            apiGroupInfo.apiVersion,
+            apiGroupInfo.pluralName,
+            apiGroupInfo.kindName);
 
-        if (!this._apiGroups[kindName]) {
-            this._apiGroups[kindName] = {
-                apiNames: {}
-            };
-        }
+        this._resources[apiGroupInfo.id] = client;
 
-        const scope = {
-            watches: this._watches,
-            request: this.request.bind(this)
-        }
-
-        let client = new ResourceAccessor(this, apiName, apiVersion, pluralName, kindName, scope);
-
-        let apiGroupInfo : ApiGroupInfo = {
-            pluralName: pluralName,
-            version: apiVersion,
-            client: client
-        };
-
-        if (apiName) {
-            this._apiGroups[kindName].apiNames[apiName] = apiGroupInfo;
-        } else {
-            this._apiGroups[kindName].default = apiGroupInfo;
-        }
         return client;
     }
 
     client(kindName: string, apiName?: string | null) : ResourceAccessor | null
     {
-        let kindInfo = this._apiGroups[kindName];
-        if (!kindInfo) {
-            return null;
-        }
+        const id = apiId(kindName, apiName);
 
-        let apiGroupInfo : ApiGroupInfo | undefined;
-        if (apiName) {
-            apiGroupInfo = kindInfo.apiNames[apiName];
-        } else {
-            apiGroupInfo = kindInfo.default;
-        }
-
-        if (!apiGroupInfo) {
-            return null;
-        }
-
-        return apiGroupInfo.client;
+        let client = this._resources[id];
+        return client || null;
     }
 
-    request<T>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
+    request<T = any>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
     {
-        this._logger.info('[request] %s => %s...', method, url);
+        this._logger.debug('[request] %s => %s...', method, url);
 
         let httpAgentParams = this._config.httpAgent || {};
         let options : AxiosRequestConfig = {
             method: method,
             baseURL: this._config.server,
             url: url,
-            headers: {
-            },
+            headers: {},
             httpsAgent: new HttpsAgent(httpAgentParams)
         };
 
         if (this._config.token)
         {
-            options.headers['Authorization'] = 'Bearer ' + this._config.token;
+            options.headers['Authorization'] = `Bearer ${this._config.token}`;
         }
 
         if (params) {
@@ -364,21 +446,18 @@ export class KubernetesClient
     }
 }
 
-interface ApiInfo
+export interface K8sApiInfo
 {
     name: string,
     version: string
 }
 
-interface ApiGroup
+export interface ApiInfo
 {
-    default?: ApiGroupInfo,
-    apiNames: Record<string, ApiGroupInfo>
-};
+    id: string,
 
-interface ApiGroupInfo
-{
+    apiName: string | null,
+    apiVersion: string,
+    kindName: string,
     pluralName: string,
-    version: string,
-    client: ResourceAccessor
 }

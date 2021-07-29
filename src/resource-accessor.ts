@@ -1,5 +1,6 @@
 import { AxiosRequestConfig } from 'axios';
 import _ from 'the-lodash'
+import { v4 as uuidv4 } from 'uuid';
 import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
 import { KubernetesClient } from './client';
@@ -9,7 +10,6 @@ import { KubernetesObject } from './types';
 
 export interface ResourceScope
 {
-    watches : Record<string, ResourceWatch>;
     request(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean)  : Promise<any>;
 }
 
@@ -23,10 +23,9 @@ export class ResourceAccessor
     private _kindName : string;
     private _pluralName : string;
 
-    private _scope: ResourceScope;
+    private _watches : Record<string, ResourceWatch> = {};
 
-    constructor(parent : KubernetesClient, apiName : string | null, apiVersion : string, pluralName : string, kindName : string,
-        scope: ResourceScope)
+    constructor(parent : KubernetesClient, apiName : string | null, apiVersion : string, pluralName : string, kindName : string)
     {
         this._parent = parent;
         this._logger = parent.logger;
@@ -34,7 +33,6 @@ export class ResourceAccessor
         this._apiVersion = apiVersion;
         this._kindName = kindName;
         this._pluralName = pluralName;
-        this._scope = scope;
     }
 
     get logger() {
@@ -47,6 +45,14 @@ export class ResourceAccessor
 
     get kindName() {
         return this._kindName;
+    }
+
+    close()
+    {
+        for(let watch of _.values(this._watches))
+        {
+            watch.close();
+        }   
     }
 
     queryAll(namespace?: string, labelFilter? : any)
@@ -72,13 +78,25 @@ export class ResourceAccessor
     
     watchAll(namespace: string | null, cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback)
     {
+        const id = uuidv4();
+
+        const scope : ResourceScope = {
+            request: this._parent.request.bind(this._parent)
+        }
+
         let watch = new ResourceWatch(this._logger.sublogger("Watch"),
             this,
             namespace,
             cb,
             connectCb,
             disconnectCb,
-            this._scope);
+            () => {
+                delete this._watches[id];
+            },
+            scope);
+
+        this._watches[id] = watch;
+        
         watch.start();
         return watch;
     }

@@ -1,0 +1,30 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-networking
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /testpath
+        pathType: Prefix
+        backend:
+          service:
+            name: test
+            port:
+              number: 80
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+ name: ingress-extension
+spec:
+  rules:
+  - http:
+     paths:
+     - path: /my/path
+       backend:
+        serviceName: my-svc
+        servicePort: 8080

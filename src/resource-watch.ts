@@ -1,7 +1,6 @@
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
-import { v4 as uuidv4 } from 'uuid';
 import * as ndjson from 'ndjson';
 import { ResourceAccessor, ResourceScope } from './resource-accessor';
 import { IncomingMessage } from 'http';
@@ -10,13 +9,13 @@ import { KubernetesObject } from './types';
 export type WatchCallback = (action: DeltaAction, data: KubernetesObject) => void;
 export type ConnectCallback = (resourceAccessor : ResourceAccessor) => void;
 export type DisconnectCallback = (resourceAccessor : ResourceAccessor, reason: {}) => void;
+export type CloseCallback = () => void;
 
 export class ResourceWatch
 {
     private _logger : ILogger;
     private _resourceAccessor : ResourceAccessor;
 
-    private _id : string;
     private _namespace : string | null;
 
     private _snapshot : Record<string, any> = {};
@@ -31,24 +30,27 @@ export class ResourceWatch
     private _cb : WatchCallback;
     private _connectCb : ConnectCallback;
     private _disconnectCb : DisconnectCallback;
+    private _closeCb: CloseCallback;
 
     private _waitCloseResolveCb : (() => void)[] = [];
 
     private _scope: ResourceScope;
 
-    private _recoveryTimeout: NodeJS.Timeout | null = null;
+    private _runWatchTimer: NodeJS.Timeout | null = null;
+    private _recoveryTimer: NodeJS.Timeout | null = null;
 
     constructor(logger : ILogger, resourceAccessor: ResourceAccessor, namespace: string | null, 
         cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback,
+        closeCb: CloseCallback,
         scope: ResourceScope)
     {
-        this._id = uuidv4();
         this._logger = logger;
         this._resourceAccessor = resourceAccessor;
         this._namespace = namespace;
         this._cb = cb;
         this._connectCb = connectCb;
         this._disconnectCb = disconnectCb;
+        this._closeCb = closeCb;
         this._scope = scope;
     }
 
@@ -63,7 +65,7 @@ export class ResourceWatch
     start()
     {
         this._logger.info('[start] %s...', this.name);
-        this._scope.watches[this._id] = this;
+        // this._scope.watches[this._id] = this;
         this._runWatch();
     }
 
@@ -71,8 +73,15 @@ export class ResourceWatch
     {
         this._logger.info('[stop] %s...', this.name);
         this._isStopped = true;
+        this._stopRecoveryTimer();
+        this._stopRunWatchTimer();
         this._closeStream();
-        delete this._scope.watches[this._id];
+        this._closeCb();
+    }
+
+    close()
+    {
+        return this.stop();
     }
 
     waitClose()
@@ -104,6 +113,8 @@ export class ResourceWatch
 
     private _runWatch()
     {
+        this._stopRunWatchTimer();
+
         this._isScheduled = false;
 
         let uriParts = this._resourceAccessor._makeUriParts(this._namespace);
@@ -118,6 +129,11 @@ export class ResourceWatch
 
         this._scope.request('GET', url, params, null, true)
             .then(result => {
+                if (!result) {
+                    this._logger.error('[_runWatch] EMPTY RESULT: %s.', this.name);
+                    return;
+                }
+
                 this._stream = <IncomingMessage>result.data;
 
                 this._logger.info('[_runWatch] Connected: %s.', this.name);
@@ -252,10 +268,10 @@ export class ResourceWatch
         } else {
             this._scheduleTimeout = this._scheduleTimeout * 2;
         }
-        this._scheduleTimeout = Math.min(this._scheduleTimeout, 10 * 1000);
+        this._scheduleTimeout = Math.min(this._scheduleTimeout, 1 * 60 * 1000);
         this._logger.silly('[_scheduleRunWatch] timeout: %s...', this._scheduleTimeout);
 
-        setTimeout(() => {
+        this._runWatchTimer = setTimeout(() => {
                 this._runWatch();
             },
             this._scheduleTimeout);
@@ -273,14 +289,14 @@ export class ResourceWatch
     private _scheduleRecoveryTimer(duration : number)
     {
         this._logger.silly('[_scheduleRecoveryTimer] %s. timeout: %s...', this.name, duration);
-        this._stopTimer();
-        this._recoveryTimeout = setTimeout(this._handleRecovery.bind(this), duration);
+        this._stopRecoveryTimer();
+        this._recoveryTimer = setTimeout(this._handleRecovery.bind(this), duration);
     }
 
     private _handleRecovery()
     {
         this._logger.info('[_handleRecovery] %s...', this.name);
-        this._stopTimer();
+        this._stopRecoveryTimer();
 
         this._logger.silly('[_handleRecovery] %s. Snapshot: ', this.name, this._snapshot);
         this._logger.silly('[_handleRecovery] %s. NewSnapshot: ', this.name, this._newSnapshot);
@@ -305,11 +321,19 @@ export class ResourceWatch
         this._logger.info('[_handleRecovery] %s recovery completed.', this.name);
     }
 
-    private _stopTimer()
+    private _stopRunWatchTimer()
     {
-        if (this._recoveryTimeout) {
-            clearTimeout(this._recoveryTimeout);
-            this._recoveryTimeout = null;
+        if (this._runWatchTimer) {
+            clearTimeout(this._runWatchTimer);
+            this._runWatchTimer = null;
+        }
+    }
+
+    private _stopRecoveryTimer()
+    {
+        if (this._recoveryTimer) {
+            clearTimeout(this._recoveryTimer);
+            this._recoveryTimer = null;
         }
     }
 
