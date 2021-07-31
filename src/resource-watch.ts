@@ -133,7 +133,11 @@ export class ResourceWatch
         this._scope.request('GET', url, params, null, true)
             .then(result => {
                 if (!result) {
-                    this._logger.error('[_runWatch] API: %s. EMPTY RESULT.', this.name);
+                    this._logger.error('[_runWatch] API: %s. Empty Result. Disconnecting.', this.name);
+                    this._onDisconnect({
+                        status: 500,
+                        message: 'API returned empty result'
+                    });
                     return;
                 }
 
