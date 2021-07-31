@@ -59,20 +59,26 @@ describe('api-watch-query-all', function() {
                         }
                     }
                 }, 3000)
+
+                logger.info("*** Waiting to collect data.");
                 
-                return Promise.timeout(10 * 1000)
-                    .then(() => client.close());
+                return Promise.timeout(30 * 1000)
+                    .then(() => {
+                        logger.info("*** Wait completed. Closing connection.");
+                        client.close()
+                    });
             })
             .then(result => {
+                // logger.info("XXX", allResources);
+
                 const dict = allResources['ServiceAccount'];
                 should(dict).be.ok();
-                should(dict['kube-system::default']).be.ok();
-                // logger.info("XXX", allResources);
+                should(dict['kube-system::coredns']).be.ok();
             });
             
 
     })
-    .timeout(20 * 1000);
+    .timeout(40 * 1000);
 
 
 });

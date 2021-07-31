@@ -126,7 +126,6 @@ export class ResourceWatch
         let params : Record<string, any> = {
             watch: true
         }
-        this._startRecoveryCountdown();
 
         this._isDisconnected = false;
 
@@ -140,6 +139,10 @@ export class ResourceWatch
                     });
                     return;
                 }
+
+                this._recovering = true;
+                this._newSnapshot = {};
+                this._scheduleRecoveryTimer(1000);
 
                 this._stream = <IncomingMessage>result.data;
 
@@ -269,8 +272,6 @@ export class ResourceWatch
             return;
         }
         this._logger.info('[_tryReconnect] API: %s. Reconnect.', this.name);
-        this._recovering = true;
-        this._newSnapshot = {};
         this._scheduleRunWatch();
     }
 
@@ -295,17 +296,11 @@ export class ResourceWatch
             this._scheduleTimeout);
     }
 
-    private _startRecoveryCountdown()
+    private _scheduleRecoveryTimer(duration : number)
     {
         if (!this._recovering) {
             return;
         }
-        this._logger.info('[_startRecoveryCountdown] API: %s. Recovery Countdown Scheduled', this.name);
-        this._scheduleRecoveryTimer(1000);
-    }
-
-    private _scheduleRecoveryTimer(duration : number)
-    {
         this._logger.silly('[_scheduleRecoveryTimer] API: %s. timeout: %s...', this.name, duration);
         this._stopRecoveryTimer();
         this._recoveryTimer = setTimeout(this._handleRecovery.bind(this), duration);

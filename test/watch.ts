@@ -1,9 +1,14 @@
+import { setupLogger, LoggerOptions } from 'the-logger';
+
 import 'mocha';
 import should = require('should');
 import _ from 'the-lodash';
 import { Promise } from 'the-promise';
 import { DeltaAction } from '../src';
 import { fetchClient } from './utils/client';
+
+const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
+const logger = setupLogger('test', loggerOptions);
 
 describe('deployment-watch', function() {
 
@@ -21,6 +26,7 @@ describe('deployment-watch', function() {
                 should(client.Deployment).be.ok();
 
                 let watch = client.Deployment!.watchAll("kube-system", (action, data) => {
+                    logger.info("Handler :: %s => %s", action, data.metadata.name);
                     if (action == DeltaAction.Added) {
                         watchResult.result.push(data);
                     }
