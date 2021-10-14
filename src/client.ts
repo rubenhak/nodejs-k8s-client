@@ -164,7 +164,7 @@ export class KubernetesClient
         this._clusterInfoWatches = {};
         this._stopClusterInfoRefreshTimer();
 
-        for(let resource of _.values(this._resources)) {
+        for(const resource of _.values(this._resources)) {
             resource.close();
         }
     }
@@ -175,7 +175,7 @@ export class KubernetesClient
 
         const id = uuidv4();
 
-        let watch = new ClusterInfoWatch(this._logger,
+        const watch = new ClusterInfoWatch(this._logger,
             this,
             cb);
 
@@ -268,9 +268,9 @@ export class KubernetesClient
         const toBeDeleted : ApiGroupInfo[] = [];
         const toBeCreated : { api: ApiGroupInfo, client?: ResourceAccessor }[] = [];
 
-        for(let api of _.values(clusterInfo.enabledApiGroups))
+        for(const api of _.values(clusterInfo.enabledApiGroups))
         {
-            let currApi = this._enabledApiGroups[api.id]
+            const currApi = this._enabledApiGroups[api.id]
             if (!currApi) {
                 toBeCreated.push({ api });
             } else {
@@ -281,9 +281,9 @@ export class KubernetesClient
             }
         }
 
-        for(let currApi of _.values(this._enabledApiGroups))
+        for(const currApi of _.values(this._enabledApiGroups))
         {
-            let api = clusterInfo.enabledApiGroups[currApi.id]
+            const api = clusterInfo.enabledApiGroups[currApi.id]
             if (!api) {
                 toBeDeleted.push(currApi);
             }
@@ -292,7 +292,7 @@ export class KubernetesClient
         this._clusterInfo = clusterInfo;
         this._enabledApiGroups = clusterInfo.enabledApiGroups;
 
-        for(let api of toBeDeleted)
+        for(const api of toBeDeleted)
         {
             const client = this._resources[api.id];
             if (client) {
@@ -300,7 +300,7 @@ export class KubernetesClient
             }
         }
 
-        for(let api of toBeCreated)
+        for(const api of toBeCreated)
         {
             api.client = this._setupResource(api.api);
         }
@@ -344,7 +344,7 @@ export class KubernetesClient
     {
         const id = apiId(kindName, apiName);
 
-        let client = this._resources[id];
+        const client = this._resources[id];
         return client || null;
     }
 
@@ -352,8 +352,8 @@ export class KubernetesClient
     {
         this._logger.debug('[request] %s => %s...', method, url);
 
-        let httpAgentParams = this._config.httpAgent || {};
-        let options : AxiosRequestConfig = {
+        const httpAgentParams = this._config.httpAgent || {};
+        const options : AxiosRequestConfig = {
             method: method,
             baseURL: this._config.server,
             url: url,
@@ -398,7 +398,7 @@ export class KubernetesClient
                 return <T>resultData;
             })
             .catch(reason => {
-                let response = reason.response;
+                const response = reason.response;
                 let status = 0;
                 let errorMessage = '';
                 if (response) {

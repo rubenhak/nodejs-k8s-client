@@ -49,7 +49,7 @@ export class ResourceAccessor
 
     close()
     {
-        for(let watch of _.values(this._watches))
+        for(const watch of _.values(this._watches))
         {
             watch.close();
         }   
@@ -57,13 +57,13 @@ export class ResourceAccessor
 
     queryAll(namespace?: string, labelFilter? : any)
     {
-        let uriParts = this._makeUriParts(namespace);
+        const uriParts = this._makeUriParts(namespace);
         return this._getRequest<any>(uriParts, { labelSelector: labelFilter })
             .then(result => {
                 if (!result) {
                     return <KubernetesObject[]>[];
                 }
-                for(let x of result.items)
+                for(const x of result.items)
                 {
                     if (!x.kind) {
                         x.kind = this.kindName;
@@ -84,7 +84,7 @@ export class ResourceAccessor
             request: this._parent.request.bind(this._parent)
         }
 
-        let watch = new ResourceWatch(this._logger.sublogger("Watch"),
+        const watch = new ResourceWatch(this._logger.sublogger("Watch"),
             this,
             namespace,
             cb,
@@ -103,38 +103,37 @@ export class ResourceAccessor
 
     query(namespace: string | null, name: string)
     {
-        let uriParts = this._makeUriParts(namespace);
+        const uriParts = this._makeUriParts(namespace);
         uriParts.push(name)
         return this._getRequest<KubernetesObject>(uriParts);
     }
 
     create(namespace: string | null, body: any)
     {
-        let uriParts = this._makeUriParts(namespace);
-        
-        let newBody = this._setupBody(body);
+        const uriParts = this._makeUriParts(namespace);
+        const newBody = this._setupBody(body);
         return this._postRequest(uriParts, {}, newBody)
     }
 
     delete(namespace: string, name: string)
     {
-        let uriParts = this._makeUriParts(namespace);
+        const uriParts = this._makeUriParts(namespace);
         uriParts.push(name)
         return this._deleteRequest(uriParts, {})
     }
 
     update(namespace: string, name: string, body: any)
     {
-        let uriParts = this._makeUriParts(namespace);
+        const uriParts = this._makeUriParts(namespace);
         uriParts.push(name)
         
-        let newBody = this._setupBody(body);
+        const newBody = this._setupBody(body);
         return this._putRequest(uriParts, {}, newBody)
     }
 
     private _getRequest<T>(uriParts: string[], params? : Record<string, any>)
     {
-        let url = this._joinUrls(uriParts);
+        const url = this._joinUrls(uriParts);
         this.logger.info('[_getRequest] %s', url);
         if (params) {
             params = _.clone(params);
@@ -142,7 +141,7 @@ export class ResourceAccessor
                 if (_.keys(params.labelSelector).length == 0) {
                     delete params.labelSelector;
                 }
-                let selectorParts = _.keys(params.labelSelector).map(x => x + '=' + params!.labelSelector[x]);
+                const selectorParts = _.keys(params.labelSelector).map(x => x + '=' + params!.labelSelector[x]);
                 params.labelSelector = selectorParts.join(',');
             }
         }
@@ -151,28 +150,28 @@ export class ResourceAccessor
 
     private _postRequest(uriParts: string[], params? : Record<string, any>, body? : Record<string, any> | null)
     {
-        let url = this._joinUrls(uriParts);
+        const url = this._joinUrls(uriParts);
         this.logger.info('[_postRequest] %s', url);
         return this._parent.request<any>('POST', url, params, body);
     }
 
     private _deleteRequest(uriParts: string[], params? : Record<string, any>)
     {
-        let url = this._joinUrls(uriParts);
+        const url = this._joinUrls(uriParts);
         this.logger.info('[_deleteRequest] %s', url);
         return this._parent.request<any>('DELETE', url, params);
     }
 
     private _putRequest(uriParts: string[], params? : Record<string, any>, body? : Record<string, any> | null)
     {
-        let url = this._joinUrls(uriParts);
+        const url = this._joinUrls(uriParts);
         this.logger.info('[_putRequest] %s', url);
         return this._parent.request<any>('PUT', url, params, body);
     }
 
     private _setupBody(body: any)
     {
-        let newBody = _.clone(body);
+        const newBody = _.clone(body);
         newBody.kind = this._kindName;
         if (this._apiName) {
             newBody.apiVersion = this._apiName + '/' + this._apiVersion;
@@ -184,20 +183,20 @@ export class ResourceAccessor
 
     _joinUrls(uriParts: string[])
     {
-        let prefixParts;
+        let prefixParts : any[];
         if (_.isNullOrUndefined(this._apiName)) {
             prefixParts = ['', 'api', this._apiVersion];
         } else {
             prefixParts = ['', 'apis', this._apiName, this._apiVersion];
         }
-        let newUriParts = _.concat(prefixParts, uriParts);
-        let url = newUriParts.join('/');
+        const newUriParts = _.concat(prefixParts, uriParts);
+        const url = newUriParts.join('/');
         return url;
     }
 
     _makeUriParts(namespace? : string | null) //, watch
     {
-        let uriParts : string[] = [];
+        const uriParts : string[] = [];
         // if (watch) {
         //     uriParts.push('watch')
         // }

@@ -24,10 +24,10 @@ export class ClusterInfoFetcher
     {
         return Promise.resolve()
             .then(() => this._discoverRootApi())
-            .then(() => this._fetchApiGroup(null, this._rootApiVersion!))
+            .then(() => this._fetchApiGroup(null, this._rootApiVersion!, false))
             .then(() => this._discoverApiGroups())
             .then(apis => {
-                return Promise.parallel(apis, x => this._fetchApiGroup(x.name, x.version));
+                return Promise.parallel(apis, x => this._fetchApiGroup(x.name, x.version, true));
             })
             .then(() => this._finalizeApis())
             .then(() => {
@@ -55,8 +55,8 @@ export class ClusterInfoFetcher
     {
         return this._client.request<any>('GET', '/apis')
             .then(result => {
-                let apis : K8sApiInfo[] = [];
-                for(let groupInfo of result.groups)
+                const apis : K8sApiInfo[] = [];
+                for(const groupInfo of result.groups)
                 {
                     if (groupInfo.preferredVersion.version) {
                         this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, groupInfo.preferredVersion.version);
@@ -71,7 +71,7 @@ export class ClusterInfoFetcher
     }
 
 
-    private _fetchApiGroup(group: string | null, version: string)
+    private _fetchApiGroup(group: string | null, version: string, allowError: boolean)
     {
         let url;
         if (group) {
@@ -81,10 +81,21 @@ export class ClusterInfoFetcher
 
         }
         return this._client.request('GET', url)
+            .catch(reason => {
+                this.logger.error("Error fetching api group: %s :: %s", group, version);
+                if (allowError) {
+                    return {};
+                }
+                throw reason;
+            })
             .then(result => {
-                for(let resource of result.resources)
+                if (!result?.resources) {
+                    return;
+                }
+
+                for(const resource of result.resources)
                 {
-                    let nameParts = resource.name.split('/');
+                    const nameParts = resource.name.split('/');
                     // this.logger.info("[fetchApiGroup] nameParts.name :: ", resource.name, nameParts);
                     if (nameParts.length == 1) {
                         this.logger.silly("[fetchApiGroup] ", resource);
@@ -101,7 +112,7 @@ export class ClusterInfoFetcher
 
         this.logger.silly("[_setupApiGroup] %s :: %s :: %s...", id, apiVersion, pluralName)
 
-        let apiGroupInfo : ApiGroupInfo = {
+        const apiGroupInfo : ApiGroupInfo = {
             id: id,
             apiName: apiName,
             apiVersion: apiVersion,
@@ -116,7 +127,7 @@ export class ClusterInfoFetcher
 
     private _finalizeApis()
     {
-        for(let apiGroupInfo of _.values(this._apiGroups))
+        for(const apiGroupInfo of _.values(this._apiGroups))
         {
             this._finalizeApi(apiGroupInfo);
         }
@@ -150,7 +161,7 @@ export class ClusterInfoFetcher
     private _haveApiResource(kindName: string, apiName?: string | null) : boolean
     {
         const id = apiId(kindName, apiName);
-        let apiGroupInfo = this._apiGroups[id];
+        const apiGroupInfo = this._apiGroups[id];
         if (apiGroupInfo) {
             return true;
         }
