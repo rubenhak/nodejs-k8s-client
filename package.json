@@ -30,7 +30,7 @@
   "dependencies": {
     "@types/ndjson": "^2.0.0",
     "@types/uuid": "^8.3.0",
-    "axios": "^0.21.1",
+    "axios": "^0.21.4",
     "dotenv": "^8.2.0",
     "ndjson": "^2.0.0",
     "the-lodash": "^2.0.9",

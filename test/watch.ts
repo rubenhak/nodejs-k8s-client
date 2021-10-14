@@ -36,7 +36,7 @@ describe('deployment-watch', function() {
                     watchResult.disconnected = true;
                 })
 
-                return Promise.timeout(5000)
+                return Promise.timeout(10000)
                     .then(() => {
                         watch.stop()
                         return watch.waitClose();
