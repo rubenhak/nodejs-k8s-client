@@ -7,10 +7,10 @@ import axios, { AxiosRequestConfig } from 'axios';
  
 import { Agent as HttpsAgent, AgentOptions } from 'https';
 
-import { KubernetesError } from "./types";
+import { ApiGroupInfo, KubernetesError } from "./types";
 import { ResourceAccessor } from './resource-accessor';
 
-import { ApiGroupInfo, ClusterInfo, ClusterInfoFetcher } from './cluster-info-fetcher';
+import { ClusterInfo, ClusterInfoFetcher } from './cluster-info-fetcher';
 import { ClusterInfoWatch } from './cluster-info-watch';
 
 import { apiId } from './utils';
@@ -57,7 +57,7 @@ export class KubernetesClient
         return this._clusterInfo;
     }
 
-    get ApiGroups() : ApiInfo[] {
+    get ApiGroups() : ApiGroupInfo[] {
         return _.values(this._enabledApiGroups);
     }
 
@@ -448,20 +448,4 @@ export class KubernetesClient
                 };
             });
     }
-}
-
-export interface K8sApiInfo
-{
-    name: string,
-    version: string
-}
-
-export interface ApiInfo
-{
-    id: string,
-
-    apiName: string | null,
-    apiVersion: string,
-    kindName: string,
-    pluralName: string,
 }

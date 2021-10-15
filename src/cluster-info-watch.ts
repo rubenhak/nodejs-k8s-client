@@ -3,7 +3,7 @@ import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
 import { ResourceAccessor } from './resource-accessor';
 import { ClusterInfoWatchCallback, KubernetesClient } from './client';
-import { ApiGroupInfo } from './cluster-info-fetcher';
+import { ApiGroupInfo } from './types';
 
 
 export class ClusterInfoWatch
@@ -11,7 +11,6 @@ export class ClusterInfoWatch
     private logger : ILogger;
     private _client: KubernetesClient;
     private _cb: ClusterInfoWatchCallback;
-
 
     constructor(logger : ILogger, client: KubernetesClient, cb: ClusterInfoWatchCallback)
     {

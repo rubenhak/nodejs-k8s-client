@@ -2,6 +2,7 @@ import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
 import { KubernetesClient } from './client';
+import { ApiGroupInfo } from './types';
 
 import { apiId } from './utils';
 
@@ -73,6 +74,8 @@ export class ClusterInfoFetcher
 
     private _fetchApiGroup(group: string | null, version: string, allowError: boolean)
     {
+        this.logger.info("[_fetchApiGroup] group: %s, version: %s", group, version);
+
         let url;
         if (group) {
             url = `/apis/${group}/${version}`;
@@ -108,18 +111,22 @@ export class ClusterInfoFetcher
 
     private _setupApiGroup(kindName: string, apiName: string | null, apiVersion: string, pluralName: string)
     {
+        const api = apiName ? `${apiName}/${apiVersion}` : apiVersion;
         const id = apiId(kindName, apiName);
 
-        this.logger.silly("[_setupApiGroup] %s :: %s :: %s...", id, apiVersion, pluralName)
+        this.logger.silly("[_setupApiGroup] %s => %s. Kind: %s...", id, api, pluralName)
 
         const apiGroupInfo : ApiGroupInfo = {
             id: id,
+            api: api,
             apiName: apiName,
             apiVersion: apiVersion,
             kindName: kindName,
             pluralName: pluralName,
             isEnabled: true
         };
+
+        this.logger.silly("[_setupApiGroup] %s => ", id, apiGroupInfo)
 
         this._apiGroups[id] = apiGroupInfo;
     }
@@ -177,20 +184,8 @@ export interface ClusterInfo
 }
 
 
-export interface K8sApiInfo
+interface K8sApiInfo
 {
     name: string,
     version: string
-}
-
-export interface ApiGroupInfo
-{
-    id: string,
-
-    apiName: string | null,
-    apiVersion: string,
-    kindName: string,
-    pluralName: string,
-
-    isEnabled: boolean,
 }

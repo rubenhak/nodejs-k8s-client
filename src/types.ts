@@ -1,3 +1,17 @@
+
+export interface ApiGroupInfo
+{
+    id: string,
+
+    api: string,
+    apiName: string | null,
+    apiVersion: string,
+    kindName: string,
+    pluralName: string,
+
+    isEnabled: boolean,
+}
+
 export interface KubernetesObject
 {
     kind: string,
