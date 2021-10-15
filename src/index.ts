@@ -1,4 +1,4 @@
-export { KubernetesError, KubernetesObject } from './types'
+export { ApiGroupInfo, KubernetesError, KubernetesObject } from './types'
 
 export { connectFromPod } from './connector';
 
