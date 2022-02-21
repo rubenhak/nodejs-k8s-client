@@ -4,6 +4,8 @@ import { Promise } from 'the-promise';
 import { KubernetesClient } from './client';
 import { ApiGroupInfo } from './types';
 
+import { APIGroup, APIGroupList, APIResourceList, APIVersions } from 'kubernetes-types/meta/v1';
+
 import { apiId } from './utils';
 
 export class ClusterInfoFetcher
@@ -44,28 +46,44 @@ export class ClusterInfoFetcher
 
     private _discoverRootApi()
     {
-        return this._client.request('GET', '/api')
+        return this._client.request<any>('GET', '/api')
             .then(result => {
                 this.logger.debug("[discoverRootApi] ", result);
-                this._rootApiVersion = <string> _.last(result.versions);
+                const version = _.last(result.versions);
+                if (!version) {
+                    this.logger.error("[discoverRootApi] Failed to determine root api version", result);
+                    throw new Error('Failed to determine root api version');
+                    return;
+                }
+
+                this._rootApiVersion = version as string;
                 this.logger.info("[discoverRootApi] root version: %s", this._rootApiVersion);
             })
     }
 
     private _discoverApiGroups() : Promise<K8sApiInfo[]>
     {
-        return this._client.request<any>('GET', '/apis')
+        return this._client.request<APIGroupList>('GET', '/apis')
             .then(result => {
+                this.logger.debug("[_discoverApiGroups] ", result);
                 const apis : K8sApiInfo[] = [];
                 for(const groupInfo of result.groups)
                 {
-                    if (groupInfo.preferredVersion.version) {
-                        this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, groupInfo.preferredVersion.version);
+                    for(const versionInfo of groupInfo.versions)
+                    {
+                        this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, versionInfo.version);
                         apis.push({
                             name: groupInfo.name,
-                            version: groupInfo.preferredVersion.version
+                            version: versionInfo.version
                         });
                     }
+                    // if (groupInfo.preferredVersion?.version) {
+                    //     this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, groupInfo.preferredVersion.version);
+                    //     apis.push({
+                    //         name: groupInfo.name,
+                    //         version: groupInfo.preferredVersion.version
+                    //     });
+                    // }
                 }
                 return apis;
             })
@@ -83,11 +101,14 @@ export class ClusterInfoFetcher
             url = `/api/${version}`;
 
         }
-        return this._client.request('GET', url)
+        return this._client.request<APIResourceList>('GET', url)
             .catch(reason => {
                 this.logger.error("Error fetching api group: %s :: %s", group, version);
                 if (allowError) {
-                    return {};
+                    return {
+                        groupVersion: '',
+                        resources: []
+                    };
                 }
                 throw reason;
             })

@@ -1,4 +1,4 @@
-import { setupLogger, LoggerOptions, LogLevel } from 'the-logger';
+import { setupLogger, LoggerOptions, LogLevel, ILogger } from 'the-logger';
 import dotenv from 'dotenv'
 
 import { KubernetesClient, KubernetesClientConfig } from '../../src'
@@ -10,7 +10,7 @@ const context : Context = {};
 
 dotenv.config();
 
-export function fetchClient()
+export function fetchClient(xLogger? : ILogger)
 {
     if (context.client) {
         return Promise.resolve(context.client);
@@ -35,7 +35,7 @@ export function fetchClient()
     }
     logger.info("Client Config: ", config);
 
-    const client = new KubernetesClient(logger, config)
+    const client = new KubernetesClient(xLogger ?? logger, config)
 
     return client.init();
 }

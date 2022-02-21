@@ -6,5 +6,9 @@ cd $MY_DIR
 rm -rf node_modules/
 rm -rf dist/
 
-npm install
-npm update the-lodash the-promise the-logger
+npm-check-updates -u \
+    the-lodash \
+    the-promise \
+    the-logger
+
+yarn

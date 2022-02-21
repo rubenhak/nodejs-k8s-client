@@ -32,9 +32,10 @@
     "@types/uuid": "^8.3.0",
     "axios": "^0.21.4",
     "dotenv": "^8.2.0",
+    "kubernetes-types": "^1.21.0-beta.1",
     "ndjson": "^2.0.0",
     "the-lodash": "^2.0.9",
-    "the-logger": "^2.0.9",
+    "the-logger": "^2.0.14",
     "the-promise": "^2.0.13",
     "uuid": "^8.2.0"
   },
