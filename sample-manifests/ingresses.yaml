@@ -15,16 +15,16 @@ spec:
             port:
               number: 80
 
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
- name: ingress-extension-v1beta1
-spec:
-  rules:
-  - http:
-     paths:
-     - path: /my/path
-       backend:
-        serviceName: my-svc
-        servicePort: 8080
+# ---
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#  name: ingress-extension-v1beta1
+# spec:
+#   rules:
+#   - http:
+#      paths:
+#      - path: /my/path
+#        backend:
+#         serviceName: my-svc
+#         servicePort: 8080
