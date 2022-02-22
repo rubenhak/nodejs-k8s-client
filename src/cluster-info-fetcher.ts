@@ -15,6 +15,7 @@ export class ClusterInfoFetcher
 
     private _rootApiVersion : string | null = null;
     private _apiGroups : Record<string, ApiGroupsVersions> = {};
+    private _selectedApiGroups : ApiGroupInfo[] = [];
     private _enabledApiGroups : Record<string, ApiGroupInfo> = {};
     private _preferredVersions : Record<string, string> = {};
 
@@ -37,6 +38,7 @@ export class ClusterInfoFetcher
             .then(() => {
                 const info : ClusterInfo = {
                     rootApiVersion: this._rootApiVersion!,
+                    apiGroups: this._selectedApiGroups,
                     enabledApiGroups: this._enabledApiGroups,
                     preferredVersions: this._preferredVersions
                 }
@@ -166,7 +168,10 @@ export class ClusterInfoFetcher
         
         for(const apiGroupVersions of _.values(this._apiGroups))
         {
-            this._finalizeApi(this._selectApiGroupVersion(apiGroupVersions));
+            const selectedApiGroup = this._selectApiGroupVersion(apiGroupVersions);
+            this._selectedApiGroups.push(selectedApiGroup);
+            
+            this._finalizeApi(selectedApiGroup);
         }
     }
 
@@ -232,7 +237,7 @@ export class ClusterInfoFetcher
 export interface ClusterInfo
 {
     rootApiVersion : string;
-    // apiGroups : Record<string, ApiGroupInfo>;
+    apiGroups : ApiGroupInfo[];
     enabledApiGroups : Record<string, ApiGroupInfo>;
     preferredVersions : Record<string, string>;
 }
