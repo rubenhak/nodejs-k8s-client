@@ -30,6 +30,7 @@ export class KubernetesClient
 
     private _isClosed: boolean = false;
 
+    private _clusterInfo : ClusterInfo | null = null;
     private _enabledApiGroups : Record<string, ApiGroupInfo> = {};
 
     private _resources: Record<string, ResourceAccessor> = {};
@@ -50,6 +51,10 @@ export class KubernetesClient
 
     get logger() {
         return this._logger;
+    }
+
+    get clusterInfo() {
+        return this._clusterInfo;
     }
 
     get ApiGroups() : ApiGroupInfo[] {
@@ -284,6 +289,7 @@ export class KubernetesClient
             }
         }
 
+        this._clusterInfo = clusterInfo;
         this._enabledApiGroups = clusterInfo.enabledApiGroups;
 
         for(const api of toBeDeleted)
