@@ -5,12 +5,13 @@ import should = require('should');
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
 import { Promise } from 'the-promise';
+import { apiId } from '../src/utils';
 
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
 
 
-describe('api-watch', function() {
+describe('api-watch-simple', function() {
 
     it('case-1', function () {
 
@@ -20,7 +21,7 @@ describe('api-watch', function() {
             .then(client => {
 
                 client.watchClusterApi((isPresent, api) => {
-                    logger.info("API. Present: %s, Name: %s", isPresent, api.id);
+                    logger.info(">>>>>> API. Present: %s, Name: %s", isPresent, api.id);
                     if (isPresent) {
                         apis[api.id] = true;
                     } else {
@@ -32,7 +33,7 @@ describe('api-watch', function() {
                     .then(() => client.close());
             })
             .then(result => {
-                should(apis['apps::DaemonSet']).be.true();
+                should(apis[apiId('DaemonSet', 'apps')]).be.true();
             });
 
     })

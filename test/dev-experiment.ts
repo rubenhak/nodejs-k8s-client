@@ -23,6 +23,12 @@ describe('dev-experiment', function() {
                                 logger.info("CRON JOBS: ", results);
                             })
                     })
+                    .then(() => {
+                        return client.client('HorizontalPodAutoscaler', 'autoscaling')!.queryAll()
+                            .then(results => {
+                                logger.info("HPAs: ", results);
+                            })
+                    })
 
             });
 

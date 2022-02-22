@@ -7,6 +7,7 @@ import { fetchClient } from './utils/client';
 import { Promise } from 'the-promise';
 import { KubernetesObject } from '../src';
 import { DeltaAction, ResourceWatch } from '../src/resource-watch';
+import { apiId } from '../src/utils';
 
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
@@ -69,9 +70,7 @@ describe('api-watch-query-all', function() {
                     });
             })
             .then(result => {
-                // logger.info("XXX", allResources);
-
-                const dict = allResources['ServiceAccount'];
+                const dict = allResources[apiId('ServiceAccount', null)];
                 should(dict).be.ok();
                 should(dict['kube-system::coredns']).be.ok();
             });

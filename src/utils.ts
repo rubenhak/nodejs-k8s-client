@@ -1,8 +1,11 @@
+import _ from 'the-lodash';
 
-export function apiId(kindName: string, apiName?: string | null)
+export function apiId(kindName: string, apiName: string | null) //, apiVersionName: string)
 {
-    if (apiName) {
-        return `${apiName}::${kindName}`;
+    const id = {
+        kind: kindName,
+        api: apiName ?? undefined
+        // version: apiVersionName
     }
-    return kindName;
+    return _.stableStringify(id);
 }

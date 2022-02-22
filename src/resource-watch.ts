@@ -120,10 +120,10 @@ export class ResourceWatch
 
         this._isScheduled = false;
 
-        let uriParts = this._resourceAccessor._makeUriParts(this._namespace);
-        let url = this._resourceAccessor._joinUrls(uriParts);
+        const uriParts = this._resourceAccessor._makeUriParts(this._namespace);
+        const url = this._resourceAccessor._joinUrls(uriParts);
 
-        let params : Record<string, any> = {
+        const params : Record<string, any> = {
             watch: true
         }
 
@@ -185,7 +185,7 @@ export class ResourceWatch
                 }
             })
             .catch(reason => {
-                let data : Record<string, any> = {};
+                const data : Record<string, any> = {};
                 let isKnownError: boolean = false;
                 if (reason.status) {
                     this.logger.error("[_runWatch] API: %s. Error Code: %s", this.name, reason.status);
@@ -258,9 +258,9 @@ export class ResourceWatch
         this._tryReconnect();
 
         if (this._isStopped) {
-            let cbs = this._waitCloseResolveCb;
+            const cbs = this._waitCloseResolveCb;
             this._waitCloseResolveCb = [];
-            for(let cb of cbs) {
+            for(const cb of cbs) {
                 cb();
             }
         }
@@ -314,15 +314,15 @@ export class ResourceWatch
         this._logger.silly('[_handleRecovery] API: %s. Snapshot: ', this.name, this._snapshot);
         this._logger.silly('[_handleRecovery] API: %s. NewSnapshot: ', this.name, this._newSnapshot);
 
-        let delta = this._produceDelta(this._snapshot, this._newSnapshot);
-        this._logger.verbose('[_handleRecovery] API: %s. delta: ', this.name, delta);
+        const delta = this._produceDelta(this._snapshot, this._newSnapshot);
+        this._logger.silly('[_handleRecovery] API: %s. delta: ', this.name, delta);
 
-        for(let x of delta) {
+        for(const x of delta) {
             this._applyToSnapshot(this._snapshot, x.action, x.data);
             this._cb(x.action, x.data);
         }
 
-        let finalDelta = this._produceDelta(this._snapshot, this._newSnapshot);
+        const finalDelta = this._produceDelta(this._snapshot, this._newSnapshot);
         if (finalDelta.length > 0) {
             this._logger.info('[_handleRecovery] API: %s. FINAL delta. should be zero: ', this.name, finalDelta);
             throw new Error("Final Delta After Recover Should Be Empty!");
@@ -352,8 +352,8 @@ export class ResourceWatch
 
     private _produceDelta(current: Record<string, any>, desired: Record<string, any>) : DeltaItem[]
     {
-        let delta : DeltaItem[] = [];
-        for(let x of _.keys(current)) {
+        const delta : DeltaItem[] = [];
+        for(const x of _.keys(current)) {
             if (x in desired) {
                 if (!_.fastDeepEqual(current[x], desired[x])) {
                     delta.push({
@@ -368,7 +368,7 @@ export class ResourceWatch
                 });
             }
         }
-        for(let x of _.keys(desired)) {
+        for(const x of _.keys(desired)) {
             if (!(x in current)) {
                 delta.push({
                     action: DeltaAction.Added,

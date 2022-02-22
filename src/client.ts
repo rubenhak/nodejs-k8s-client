@@ -30,7 +30,6 @@ export class KubernetesClient
 
     private _isClosed: boolean = false;
 
-    private _clusterInfo : ClusterInfo | null = null;
     private _enabledApiGroups : Record<string, ApiGroupInfo> = {};
 
     private _resources: Record<string, ResourceAccessor> = {};
@@ -51,10 +50,6 @@ export class KubernetesClient
 
     get logger() {
         return this._logger;
-    }
-
-    get clusterInfo() {
-        return this._clusterInfo;
     }
 
     get ApiGroups() : ApiGroupInfo[] {
@@ -289,7 +284,6 @@ export class KubernetesClient
             }
         }
 
-        this._clusterInfo = clusterInfo;
         this._enabledApiGroups = clusterInfo.enabledApiGroups;
 
         for(const api of toBeDeleted)
@@ -327,7 +321,7 @@ export class KubernetesClient
     
     private _setupResource(apiGroupInfo : ApiGroupInfo) : ResourceAccessor
     {
-        this.logger.debug("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
+        this.logger.info("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
 
         const client = new ResourceAccessor(this,
             apiGroupInfo.apiName,
@@ -342,7 +336,9 @@ export class KubernetesClient
 
     client(kindName: string, apiName?: string | null) : ResourceAccessor | null
     {
-        const id = apiId(kindName, apiName);
+        const id = apiId(kindName, apiName ?? null);
+
+        this.logger.info("[client] GET CLIENT: %s", id)
 
         const client = this._resources[id];
         return client || null;
@@ -376,6 +372,7 @@ export class KubernetesClient
             options.responseType = 'stream';
         }
 
+        this.logger.debug("[request] -> %s", url);
         this._logger.silly('[request] Begin', options);
         return Promise.resolve()
             .then(() => axios(options))

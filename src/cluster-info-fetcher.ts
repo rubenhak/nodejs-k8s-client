@@ -4,7 +4,7 @@ import { Promise } from 'the-promise';
 import { KubernetesClient } from './client';
 import { ApiGroupInfo } from './types';
 
-import { APIGroup, APIGroupList, APIResourceList, APIVersions } from 'kubernetes-types/meta/v1';
+import { APIGroupList, APIResourceList } from 'kubernetes-types/meta/v1';
 
 import { apiId } from './utils';
 
@@ -14,8 +14,9 @@ export class ClusterInfoFetcher
     private _client: KubernetesClient;
 
     private _rootApiVersion : string | null = null;
-    private _apiGroups : Record<string, ApiGroupInfo> = {};
+    private _apiGroups : Record<string, ApiGroupsVersions> = {};
     private _enabledApiGroups : Record<string, ApiGroupInfo> = {};
+    private _preferredVersions : Record<string, string> = {};
 
     constructor(logger : ILogger, client: KubernetesClient)
     {
@@ -36,8 +37,8 @@ export class ClusterInfoFetcher
             .then(() => {
                 const info : ClusterInfo = {
                     rootApiVersion: this._rootApiVersion!,
-                    apiGroups: this._apiGroups,
-                    enabledApiGroups: this._enabledApiGroups
+                    enabledApiGroups: this._enabledApiGroups,
+                    preferredVersions: this._preferredVersions
                 }
                 return info;
             })
@@ -65,30 +66,28 @@ export class ClusterInfoFetcher
     {
         return this._client.request<APIGroupList>('GET', '/apis')
             .then(result => {
-                this.logger.debug("[_discoverApiGroups] ", result);
+                this.logger.silly("[_discoverApiGroups] ", result);
                 const apis : K8sApiInfo[] = [];
                 for(const groupInfo of result.groups)
                 {
                     for(const versionInfo of groupInfo.versions)
                     {
-                        this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, versionInfo.version);
+                        this.logger.info("[discoverApiGroups] %s :: %s...", groupInfo.name, versionInfo.version);
                         apis.push({
                             name: groupInfo.name,
                             version: versionInfo.version
                         });
                     }
-                    // if (groupInfo.preferredVersion?.version) {
-                    //     this.logger.verbose("[discoverApiGroups] %s :: %s...", groupInfo.name, groupInfo.preferredVersion.version);
-                    //     apis.push({
-                    //         name: groupInfo.name,
-                    //         version: groupInfo.preferredVersion.version
-                    //     });
-                    // }
+
+                    const preferredVersion = groupInfo.preferredVersion?.version;
+                    if (preferredVersion) {
+                        this.logger.verbose("[discoverApiGroups] %s preferred version => %s...", groupInfo.name, preferredVersion);
+                        this._preferredVersions[groupInfo.name] = preferredVersion;
+                    }
                 }
                 return apis;
             })
     }
-
 
     private _fetchApiGroup(group: string | null, version: string, allowError: boolean)
     {
@@ -99,8 +98,8 @@ export class ClusterInfoFetcher
             url = `/apis/${group}/${version}`;
         } else {
             url = `/api/${version}`;
-
         }
+
         return this._client.request<APIResourceList>('GET', url)
             .catch(reason => {
                 this.logger.error("Error fetching api group: %s :: %s", group, version);
@@ -122,6 +121,7 @@ export class ClusterInfoFetcher
                     const nameParts = resource.name.split('/');
                     // this.logger.info("[fetchApiGroup] nameParts.name :: ", resource.name, nameParts);
                     if (nameParts.length == 1) {
+                        // EXPLANATION: This is to skip "Status" objects
                         this.logger.silly("[fetchApiGroup] ", resource);
                         this._setupApiGroup(resource.kind, group, version, nameParts[0]);
                     }
@@ -132,10 +132,10 @@ export class ClusterInfoFetcher
 
     private _setupApiGroup(kindName: string, apiName: string | null, apiVersion: string, pluralName: string)
     {
-        const api = apiName ? `${apiName}/${apiVersion}` : apiVersion;
-        const id = apiId(kindName, apiName);
+        this.logger.info("[_setupApiGroup] apiName: %s, kindName: %s, apiVersion: %s", apiName, kindName, apiVersion);
 
-        this.logger.silly("[_setupApiGroup] %s => %s. Kind: %s...", id, api, pluralName)
+        const id = apiId(kindName, apiName);
+        const api = apiName ? `${apiName}/${apiVersion}` : apiVersion;
 
         const apiGroupInfo : ApiGroupInfo = {
             id: id,
@@ -149,15 +149,47 @@ export class ClusterInfoFetcher
 
         this.logger.silly("[_setupApiGroup] %s => ", id, apiGroupInfo)
 
-        this._apiGroups[id] = apiGroupInfo;
+        if (!this._apiGroups[id]) {
+            this._apiGroups[id] = {
+                kindName: kindName,
+                apiName: apiName,
+                versions: []
+            }
+        }
+        this._apiGroups[id].versions.push(apiGroupInfo);
     }
 
 
     private _finalizeApis()
     {
-        for(const apiGroupInfo of _.values(this._apiGroups))
+        // this.logger.silly("[_finalizeApis] ", this._apiGroups);
+        
+        for(const apiGroupVersions of _.values(this._apiGroups))
         {
-            this._finalizeApi(apiGroupInfo);
+            this._finalizeApi(this._selectApiGroupVersion(apiGroupVersions));
+        }
+    }
+
+    private _selectApiGroupVersion(apiGroupVersions: ApiGroupsVersions) : ApiGroupInfo
+    {
+        const preferredVersion = this._getPreferredVersion(apiGroupVersions.apiName);
+        if (preferredVersion) {
+            const preferredGroup = _.find(apiGroupVersions.versions, x => x.apiVersion === preferredVersion);
+            if (preferredGroup) {
+                return preferredGroup;
+            }
+        }
+
+        const orderedVersions = _.orderBy(apiGroupVersions.versions, x => x.apiVersion);
+        return _.head(orderedVersions)!;
+    }
+
+    private _getPreferredVersion(apiName: string | null)
+    {
+        if (apiName) {
+            return this._preferredVersions[apiName];
+        } else {
+            return this._rootApiVersion;
         }
     }
 
@@ -175,33 +207,34 @@ export class ClusterInfoFetcher
 
     private _isApiDisabled(apiGroupInfo : ApiGroupInfo) : boolean
     {
-        if (apiGroupInfo.apiName === 'extensions' && apiGroupInfo.kindName === 'Ingress')
-        {
-            if (this._haveApiResource('Ingress', 'networking.k8s.io'))
-            {
-                return true;
-            }
-        }
+        // if (apiGroupInfo.apiName === 'extensions' && apiGroupInfo.kindName === 'Ingress')
+        // {
+        //     if (this._haveApiResource('Ingress', 'networking.k8s.io'))
+        //     {
+        //         return true;
+        //     }
+        // }
 
         return false;
     }
 
-    private _haveApiResource(kindName: string, apiName?: string | null) : boolean
-    {
-        const id = apiId(kindName, apiName);
-        const apiGroupInfo = this._apiGroups[id];
-        if (apiGroupInfo) {
-            return true;
-        }
-        return false;
-    }
+    // private _haveApiResource(kindName: string, apiName?: string | null) : boolean
+    // {
+    //     const id = apiId(kindName, apiName);
+    //     const apiGroupInfo = this._apiGroups[id];
+    //     if (apiGroupInfo) {
+    //         return true;
+    //     }
+    //     return false;
+    // }
 }
 
 export interface ClusterInfo
 {
     rootApiVersion : string;
-    apiGroups : Record<string, ApiGroupInfo>;
+    // apiGroups : Record<string, ApiGroupInfo>;
     enabledApiGroups : Record<string, ApiGroupInfo>;
+    preferredVersions : Record<string, string>;
 }
 
 
@@ -209,4 +242,12 @@ interface K8sApiInfo
 {
     name: string,
     version: string
+}
+
+interface ApiGroupsVersions
+{
+    apiName: string | null,
+    kindName: string,
+
+    versions: ApiGroupInfo[],
 }
