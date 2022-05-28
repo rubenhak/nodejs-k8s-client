@@ -1,6 +1,6 @@
 language: node_js
 node_js:
-  - stable
+  - 14
 before_script:
   - npm run build
   - curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
