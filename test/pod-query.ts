@@ -22,7 +22,6 @@ describe('pod-query', function() {
 
                 should(namespaces).matchEvery(x => x == "kube-system");
                 should(names).matchAny(x => _.startsWith(x, "coredns"));
-                should(names).matchAny(x => _.startsWith(x, "metrics"));
             });
 
     });

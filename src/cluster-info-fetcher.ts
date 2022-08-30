@@ -72,19 +72,19 @@ export class ClusterInfoFetcher
                 const apis : K8sApiInfo[] = [];
                 for(const groupInfo of result.groups)
                 {
+                    const preferredVersion = groupInfo.preferredVersion?.version;
+                    if (preferredVersion) {
+                        this._preferredVersions[groupInfo.name] = preferredVersion;
+                    }
+
+                    this.logger.info("[discoverApiGroups] %s (%s). All versions: [%s]", groupInfo.name, preferredVersion ?? "?", groupInfo.versions.map(x => x.version).join(', '));
+
                     for(const versionInfo of groupInfo.versions)
                     {
-                        this.logger.info("[discoverApiGroups] %s :: %s...", groupInfo.name, versionInfo.version);
                         apis.push({
                             name: groupInfo.name,
                             version: versionInfo.version
                         });
-                    }
-
-                    const preferredVersion = groupInfo.preferredVersion?.version;
-                    if (preferredVersion) {
-                        this.logger.verbose("[discoverApiGroups] %s preferred version => %s...", groupInfo.name, preferredVersion);
-                        this._preferredVersions[groupInfo.name] = preferredVersion;
                     }
                 }
                 return apis;
@@ -124,28 +124,34 @@ export class ClusterInfoFetcher
                     // this.logger.info("[fetchApiGroup] nameParts.name :: ", resource.name, nameParts);
                     if (nameParts.length == 1) {
                         // EXPLANATION: This is to skip "Status" objects
-                        this.logger.silly("[fetchApiGroup] ", resource);
-                        this._setupApiGroup(resource.kind, group, version, nameParts[0]);
+                        this.logger.silly("[_fetchApiGroup] ", resource);
+                        this._setupApiGroup(resource.kind, group, version, nameParts[0], resource.namespaced);
                     }
                 }
             })
     }
 
 
-    private _setupApiGroup(kindName: string, apiName: string | null, apiVersion: string, pluralName: string)
+    private _setupApiGroup(
+        kindName: string,
+        apiName: string | null,
+        version: string,
+        pluralName: string,
+        isNamespaced: boolean)
     {
-        this.logger.info("[_setupApiGroup] apiName: %s, kindName: %s, apiVersion: %s", apiName, kindName, apiVersion);
+        this.logger.info("[_setupApiGroup] apiName: %s, kindName: %s, version: %s, namespaced: %s", apiName, kindName, version, isNamespaced);
 
         const id = apiId(kindName, apiName);
-        const api = apiName ? `${apiName}/${apiVersion}` : apiVersion;
+        const apiVersion = apiName ? `${apiName}/${version}` : version;
 
         const apiGroupInfo : ApiGroupInfo = {
             id: id,
-            api: api,
-            apiName: apiName,
             apiVersion: apiVersion,
+            apiName: apiName,
+            version: version,
             kindName: kindName,
             pluralName: pluralName,
+            isNamespaced: isNamespaced,
             isEnabled: true
         };
 
@@ -179,13 +185,13 @@ export class ClusterInfoFetcher
     {
         const preferredVersion = this._getPreferredVersion(apiGroupVersions.apiName);
         if (preferredVersion) {
-            const preferredGroup = _.find(apiGroupVersions.versions, x => x.apiVersion === preferredVersion);
+            const preferredGroup = _.find(apiGroupVersions.versions, x => x.version === preferredVersion);
             if (preferredGroup) {
                 return preferredGroup;
             }
         }
 
-        const orderedVersions = _.orderBy(apiGroupVersions.versions, x => x.apiVersion);
+        const orderedVersions = _.orderBy(apiGroupVersions.versions, x => x.version);
         return _.head(orderedVersions)!;
     }
 
@@ -206,7 +212,7 @@ export class ClusterInfoFetcher
             return;
         }
 
-        this.logger.debug("[_finalizeApi] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
+        this.logger.debug("[_finalizeApi] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.version)
         this._enabledApiGroups[apiGroupInfo.id] = apiGroupInfo;
     }
 

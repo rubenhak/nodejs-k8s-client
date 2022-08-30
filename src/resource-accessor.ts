@@ -19,18 +19,18 @@ export class ResourceAccessor
     private _parent : KubernetesClient;
 
     private _apiName : string | null;
-    private _apiVersion : string;
+    private _version : string;
     private _kindName : string;
     private _pluralName : string;
 
     private _watches : Record<string, ResourceWatch> = {};
 
-    constructor(parent : KubernetesClient, apiName : string | null, apiVersion : string, pluralName : string, kindName : string)
+    constructor(parent : KubernetesClient, apiName : string | null, version : string, pluralName : string, kindName : string)
     {
         this._parent = parent;
         this._logger = parent.logger;
         this._apiName = apiName;
-        this._apiVersion = apiVersion;
+        this._version = version;
         this._kindName = kindName;
         this._pluralName = pluralName;
     }
@@ -174,9 +174,9 @@ export class ResourceAccessor
         const newBody = _.clone(body);
         newBody.kind = this._kindName;
         if (this._apiName) {
-            newBody.apiVersion = this._apiName + '/' + this._apiVersion;
+            newBody.apiVersion = this._apiName + '/' + this._version;
         } else {
-            newBody.apiVersion = this._apiVersion;
+            newBody.apiVersion = this._version;
         }
         return newBody;
     }
@@ -185,9 +185,9 @@ export class ResourceAccessor
     {
         let prefixParts : any[];
         if (_.isNullOrUndefined(this._apiName)) {
-            prefixParts = ['', 'api', this._apiVersion];
+            prefixParts = ['', 'api', this._version];
         } else {
-            prefixParts = ['', 'apis', this._apiName, this._apiVersion];
+            prefixParts = ['', 'apis', this._apiName, this._version];
         }
         const newUriParts = _.concat(prefixParts, uriParts);
         const url = newUriParts.join('/');

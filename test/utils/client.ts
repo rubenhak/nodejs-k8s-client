@@ -21,20 +21,27 @@ export function fetchClient(xLogger? : ILogger)
     if (!process.env['K8S_APISERVER']) {
         throw new Error('Missing env variable K8S_APISERVER');
     }
-    if (!process.env['K8S_TOKEN']) {
-        throw new Error('Missing env variable K8S_TOKEN');
-    }
     if (!process.env['K8S_CA_DATA']) {
         throw new Error('Missing env variable K8S_CA_DATA');
     }
 
     const config : KubernetesClientConfig = {
         server: process.env['K8S_APISERVER'],
-        token : process.env['K8S_TOKEN'],
         httpAgent: {
-            ca: Buffer.from(process.env['K8S_CA_DATA']!, 'base64').toString('ascii'),
+            ca: decodeBase64(process.env['K8S_CA_DATA']!),
         }
     }
+
+    if (process.env['K8S_TOKEN']) {
+        config.token = process.env['K8S_TOKEN'];
+    }
+    if (process.env['K8S_CLIENT_CERT']) {
+        config.httpAgent!.cert = decodeBase64(process.env['K8S_CLIENT_CERT']);
+    }
+    if (process.env['K8S_CLIENT_KEY']) {
+        config.httpAgent!.key = decodeBase64(process.env['K8S_CLIENT_KEY']);
+    }
+
     logger.info("Client Config: ", config);
 
     const client = new KubernetesClient(xLogger ?? logger, config)
@@ -44,4 +51,10 @@ export function fetchClient(xLogger? : ILogger)
 
 interface Context {
     client?: KubernetesClient
+}
+
+
+function decodeBase64(str : string)
+{
+    return Buffer.from(str, 'base64').toString('ascii');
 }

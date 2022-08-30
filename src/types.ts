@@ -3,11 +3,12 @@ export interface ApiGroupInfo
 {
     id: string,
 
-    api: string,
-    apiName: string | null,
     apiVersion: string,
+    apiName: string | null,
+    version: string,
     kindName: string,
     pluralName: string,
+    isNamespaced: boolean,
 
     isEnabled: boolean,
 }

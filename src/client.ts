@@ -274,7 +274,7 @@ export class KubernetesClient
             if (!currApi) {
                 toBeCreated.push({ api });
             } else {
-                if (currApi.apiVersion !== api.apiVersion) {
+                if (currApi.version !== api.version) {
                     toBeDeleted.push(currApi);
                     toBeCreated.push({ api });
                 }
@@ -327,11 +327,11 @@ export class KubernetesClient
     
     private _setupResource(apiGroupInfo : ApiGroupInfo) : ResourceAccessor
     {
-        this.logger.info("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.apiVersion)
+        this.logger.info("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.version)
 
         const client = new ResourceAccessor(this,
             apiGroupInfo.apiName,
-            apiGroupInfo.apiVersion,
+            apiGroupInfo.version,
             apiGroupInfo.pluralName,
             apiGroupInfo.kindName);
 
