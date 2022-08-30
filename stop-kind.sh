@@ -7,3 +7,4 @@ source configuration.sh
 
 kind delete cluster --name ${KIND_CLUSTER_NAME}
 
+rm ${KIND_KUBECONFIG_FILE}
