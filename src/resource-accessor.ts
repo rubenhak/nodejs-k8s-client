@@ -84,7 +84,7 @@ export class ResourceAccessor
             request: this._parent.request.bind(this._parent)
         }
 
-        const watch = new ResourceWatch(this._logger.sublogger("Watch"),
+        const watch = new ResourceWatch(this._logger.sublogger("K8sResourceWatch"),
             this,
             namespace,
             cb,
