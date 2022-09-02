@@ -125,7 +125,7 @@ export class ClusterInfoFetcher
                     if (nameParts.length == 1) {
                         // EXPLANATION: This is to skip "Status" objects
                         this.logger.silly("[_fetchApiGroup] ", resource);
-                        this._setupApiGroup(resource.kind, group, version, nameParts[0], resource.namespaced);
+                        this._setupApiGroup(resource.kind, group, version, nameParts[0], resource.namespaced, resource.verbs);
                     }
                 }
             })
@@ -137,9 +137,10 @@ export class ClusterInfoFetcher
         apiName: string | null,
         version: string,
         pluralName: string,
-        isNamespaced: boolean)
+        isNamespaced: boolean,
+        verbs: string[])
     {
-        this.logger.info("[_setupApiGroup] apiName: %s, kindName: %s, version: %s, namespaced: %s", apiName, kindName, version, isNamespaced);
+        this.logger.info("[_setupApiGroup] apiName: %s, kindName: %s, version: %s, namespaced: %s, verbs: [%s]", apiName, kindName, version, isNamespaced, verbs.join(", "));
 
         const id = apiId(kindName, apiName);
         const apiVersion = apiName ? `${apiName}/${version}` : version;
@@ -152,6 +153,7 @@ export class ClusterInfoFetcher
             kindName: kindName,
             pluralName: pluralName,
             isNamespaced: isNamespaced,
+            verbs: verbs,
             isEnabled: true
         };
 
@@ -218,26 +220,9 @@ export class ClusterInfoFetcher
 
     private _isApiDisabled(apiGroupInfo : ApiGroupInfo) : boolean
     {
-        // if (apiGroupInfo.apiName === 'extensions' && apiGroupInfo.kindName === 'Ingress')
-        // {
-        //     if (this._haveApiResource('Ingress', 'networking.k8s.io'))
-        //     {
-        //         return true;
-        //     }
-        // }
-
         return false;
     }
 
-    // private _haveApiResource(kindName: string, apiName?: string | null) : boolean
-    // {
-    //     const id = apiId(kindName, apiName);
-    //     const apiGroupInfo = this._apiGroups[id];
-    //     if (apiGroupInfo) {
-    //         return true;
-    //     }
-    //     return false;
-    // }
 }
 
 export interface ClusterInfo

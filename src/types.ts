@@ -9,6 +9,7 @@ export interface ApiGroupInfo
     kindName: string,
     pluralName: string,
     isNamespaced: boolean,
+    verbs: string[],
 
     isEnabled: boolean,
 }

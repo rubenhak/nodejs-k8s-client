@@ -3,10 +3,10 @@ import dotenv from 'dotenv'
 
 import { KubernetesClient, KubernetesClientConfig } from '../../src'
 
-const loggerOptions = new LoggerOptions().enableFile(false).pretty(true)
+const loggerOptions = new LoggerOptions().enableFile(true).pretty(true)
     // .level(LogLevel.debug)
     ;
-const logger = setupLogger('ClientTest', loggerOptions);
+const logger = setupLogger('Test', loggerOptions);
 
 const context : Context = {};
 
@@ -44,7 +44,7 @@ export function fetchClient(xLogger? : ILogger)
 
     logger.info("Client Config: ", config);
 
-    const client = new KubernetesClient(xLogger ?? logger, config)
+    const client = new KubernetesClient(xLogger ?? logger.sublogger("K8sClient"), config)
 
     return client.init();
 }
