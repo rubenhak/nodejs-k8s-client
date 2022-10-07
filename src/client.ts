@@ -13,6 +13,8 @@ import { ResourceAccessor } from './resource-accessor';
 import { ClusterInfo, ClusterInfoFetcher } from './cluster-info-fetcher';
 import { ClusterInfoWatch } from './cluster-info-watch';
 
+import { KubernetesOpenApiClient } from './open-api-client';
+
 import { apiId } from './utils';
 
 export interface KubernetesClientConfig {
@@ -39,6 +41,8 @@ export class KubernetesClient
 
     private _clusterInfoRefreshDelay: number | undefined;
     private _clusterInfoRefreshTimer: NodeJS.Timeout | null = null;
+
+    private _openApi: KubernetesOpenApiClient;
     
     constructor(logger : ILogger, config : KubernetesClientConfig)
     {
@@ -47,6 +51,8 @@ export class KubernetesClient
 
         this._logger.info('[construct] ');
         this._logger.silly('[construct] ', this._config);
+
+        this._openApi = new KubernetesOpenApiClient(this);
     }
 
     get logger() {
@@ -55,6 +61,10 @@ export class KubernetesClient
 
     get clusterInfo() {
         return this._clusterInfo;
+    }
+
+    get openAPI() {
+        return this._openApi;
     }
 
     get ApiGroups() : ApiGroupInfo[] {

@@ -57,6 +57,11 @@
   resolved "https://registry.yarnpkg.com/@types/bluebird/-/bluebird-3.5.35.tgz#3964c48372bf62d60616d8673dd77a9719ebac9b"
   integrity sha512-2WeeXK7BuQo7yPI4WGOBum90SzF/f8rqlvpaXx4rjeTmNssGRDHWf7fgDUH90xMB3sUOu716fUK5d+OVx0+ncQ==
 
+"@types/bluebird@3.5.36":
+  version "3.5.36"
+  resolved "https://registry.yarnpkg.com/@types/bluebird/-/bluebird-3.5.36.tgz#00d9301d4dc35c2f6465a8aec634bb533674c652"
+  integrity sha512-HBNx4lhkxN7bx6P0++W8E289foSu8kO8GCk2unhuVggO+cE7rh9DhZUyPhUxNRG9m+5B5BTKxZQ5ZP92x/mx9Q==
+
 "@types/eslint-visitor-keys@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@types/eslint-visitor-keys/-/eslint-visitor-keys-1.0.0.tgz#1ee30d79544ca84d68d4b3cdb0af4f205663dd2d"
@@ -1094,6 +1099,11 @@ mocha@^8.1.1:
     yargs-parser "20.2.4"
     yargs-unparser "2.0.0"
 
+moment@2.29.4:
+  version "2.29.4"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.4.tgz#3dbe052889fe7c1b2ed966fcb3a77328964ef108"
+  integrity sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==
+
 moment@^2.29.1:
   version "2.29.1"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
@@ -1586,6 +1596,16 @@ the-promise@^2.0.13:
     "@types/bluebird" "3.5.35"
     bluebird "3.7.2"
     moment "^2.29.1"
+    the-lodash "^2.0.9"
+
+the-promise@^2.0.15:
+  version "2.0.15"
+  resolved "https://registry.yarnpkg.com/the-promise/-/the-promise-2.0.15.tgz#f3cfc57676b4e21aeefc32ec9d9eb4b534bfc616"
+  integrity sha512-5nWyNDjjPz76xHx3iTypQyr215+r2SOawKy4UJyTs7r+zjd8oBUNAPIVlW7TUKbvFqMPg4A+FsRPmdCp5vewFw==
+  dependencies:
+    "@types/bluebird" "3.5.36"
+    bluebird "3.7.2"
+    moment "2.29.4"
     the-lodash "^2.0.9"
 
 thread-stream@^0.12.0:

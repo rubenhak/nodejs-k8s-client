@@ -37,7 +37,7 @@
     "ndjson": "^2.0.0",
     "the-lodash": "^2.0.9",
     "the-logger": "^2.0.14",
-    "the-promise": "^2.0.13",
+    "the-promise": "^2.0.15",
     "uuid": "^8.2.0"
   },
   "devDependencies": {

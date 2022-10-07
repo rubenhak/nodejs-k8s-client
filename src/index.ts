@@ -6,3 +6,5 @@ export { connectDefaultRemoteCluster, connectRemoteCluster } from './connector-r
 export { KubernetesClient, KubernetesClientConfig } from './client'
 export { ResourceAccessor } from './resource-accessor'
 export { WatchCallback, ConnectCallback, DisconnectCallback, DeltaAction } from './resource-watch'
+
+export { KubernetesOpenApiClient, KubernetesOpenApiRoot } from './open-api-client';
