@@ -20,8 +20,6 @@ describe('open-api', function() {
                 return client.openAPI.queryRootPaths()
                     .then(result => {
 
-                        // logger.info("RESULT: ", result);
-
                         should(result.paths['api/v1']).be.ok();
 
                     })
@@ -61,7 +59,7 @@ describe('open-api', function() {
 
                             should(data).be.ok();
                             should(data.openapi).be.equal("3.0.0");
-                            should(data.info.title).be.equal("Kubernetes");
+                            should(data.info.title).be.String()
                             should(data.paths).be.ok();
                             should(data.components).be.ok();
                         }
