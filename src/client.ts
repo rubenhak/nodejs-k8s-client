@@ -13,7 +13,7 @@ import { ResourceAccessor } from './resource-accessor';
 import { ClusterInfo, ClusterInfoFetcher } from './cluster-info-fetcher';
 import { ClusterInfoWatch } from './cluster-info-watch';
 
-import { KubernetesOpenApiClient } from './open-api-client';
+import { KubernetesOpenApiClient } from './open-api/open-api-client';
 
 import { apiId } from './utils';
 

@@ -5,6 +5,6 @@ cd $MY_DIR
 
 source configuration.sh
 
-kind create cluster --name ${KIND_CLUSTER_NAME} --kubeconfig ${KIND_KUBECONFIG_FILE}
+kind create cluster --name ${KIND_CLUSTER_NAME} --kubeconfig ${KIND_KUBECONFIG_FILE} --image kindest/node:v1.25.2
 
 kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/
