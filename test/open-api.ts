@@ -103,7 +103,9 @@ describe('open-api', function() {
 
                     })
             });
-    });
+    })
+    .timeout(20 * 1000)
+    ;
 
     it('v2-query-root', function () {
 
@@ -134,7 +136,9 @@ describe('open-api', function() {
                     })
             });
 
-    });
+    })
+    .timeout(20 * 1000)
+    ;
 
     
 });
