@@ -8,6 +8,7 @@ export { ResourceAccessor } from './resource-accessor'
 export { WatchCallback, ConnectCallback, DisconnectCallback, DeltaAction } from './resource-watch'
 
 export { KubernetesOpenApiClient } from './open-api/open-api-client';
-export { KubernetesVersionInfo, OpenApiDefinition } from './open-api/types';
+export { KubernetesVersionInfo, K8sOpenApiSpecs, K8sOpenApiResource } from './open-api/types';
 export { KubernetesOpenApiV3Root, OpenApiv3PathInfo } from './open-api/open-api-v3';
 export { KubernetesOpenApiV2Root, OpenApiv2PathInfo } from './open-api/open-api-v2';
+export { K8sOpenApiSpecToJsonSchemaConverter } from './open-api/converter/k8s-open-api-spec-to-json-schema-converter';

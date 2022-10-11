@@ -1,4 +1,5 @@
-import { K8sOpenApiPathExtension, OpenApiDefinition } from "./types";
+import { K8sOpenApiPathExtension } from "./types";
+import { OpenApiV3SchemaObject } from './open-api-v3-types';
 
 export interface KubernetesOpenApiV3Root
 {
@@ -19,7 +20,7 @@ export interface KubernetesOpenApiV3Response
     },
     components: {
         schemas?: {
-            [name: string] : OpenApiDefinition
+            [name: string] : OpenApiV3SchemaObject
         },
         securitySchemes: {
             [name: string] : any
@@ -40,7 +41,7 @@ export interface OpenApiv3PathInfo extends K8sOpenApiPathExtension
     }[],
     requestBody?: {
         content?: {
-            [type: string]: { // "*/*"
+            [type: string]: {
                 schema: {
                     ["$ref"]?: string
                 }

@@ -1,3 +1,5 @@
+import { KubernetesOpenApiV3Response } from './open-api-v3';
+import { KubernetesOpenApiV2Root } from './open-api-v2';
 
 export interface KubernetesVersionInfoRaw
 {
@@ -26,17 +28,6 @@ export interface KubernetesVersionInfo
 }
 
 
-
-
-export interface OpenApiDefinition
-{
-    type: string,
-    required?: string[];
-    properties?: Record<string, OpenApiDefinition>;
-    items?: OpenApiDefinition;
-}
-
-
 export interface K8sOpenApiPathExtension
 {
     ["x-kubernetes-action"]?: string,
@@ -45,4 +36,19 @@ export interface K8sOpenApiPathExtension
         kind: string;
         version: string;
     }
+}
+
+export interface K8sOpenApiSpecs
+{
+    k8sVersion: string;
+    openApiVersion: string;
+    openApiV3Data?: Record<string, KubernetesOpenApiV3Response>;
+    openApiV2Data?: KubernetesOpenApiV2Root;
+}
+
+export interface K8sOpenApiResource
+{
+    group: string;
+    kind: string;
+    version: string;
 }

@@ -4,6 +4,7 @@ import 'mocha';
 import should = require('should');
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
+import { K8sOpenApiSpecToJsonSchemaConverter } from '../src';
 
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
@@ -140,5 +141,66 @@ describe('open-api', function() {
     .timeout(20 * 1000)
     ;
 
+    it('query-api-spec', function () {
+
+        return fetchClient()
+            .then(client => {
+                should(client).be.ok();
+
+                return client.openAPI.queryApiSpecs()
+                    .then(result => {
+
+                        should(result).be.ok();
+
+                        should(result.k8sVersion).be.a.String();
+                        should(result.openApiVersion).be.a.String();
+
+                        if (result.openApiV2Data) {
+                            should(result.openApiV3Data).not.be.ok();
+                        }
+
+                        if (result.openApiV3Data) {
+                            should(result.openApiV2Data).not.be.ok();
+                        }
+                        
+                    })
+            });
+
+    })
+    .timeout(20 * 1000)
+    ;
+
+    it('open-api-to-json-schema-converter', function () {
+
+        return fetchClient()
+            .then(client => {
+                should(client).be.ok();
+
+                return client.openAPI.queryApiSpecs()
+                    .then(result => {
+
+                        should(result).be.ok();
+
+                        const converter = new K8sOpenApiSpecToJsonSchemaConverter(logger, result);
+                        const jsonSchema = converter.convert();
+                        
+                        should(jsonSchema).be.ok();
+                        should(jsonSchema.resources).be.ok();
+                        should(jsonSchema.definitions).be.ok();
+
+
+                        should(jsonSchema.resources[_.stableStringify({ group: '', kind: 'Pod', version: 'v1'})]).be.equal("io.k8s.api.core.v1.Pod");
+                        should(jsonSchema.resources[_.stableStringify({ group: '', kind: 'Service', version: 'v1'})]).be.equal("io.k8s.api.core.v1.Service");
+                        should(jsonSchema.resources[_.stableStringify({ group: 'apps', kind: 'Deployment', version: 'v1'})]).be.equal("io.k8s.api.apps.v1.Deployment");
+                        
+                        should(jsonSchema.definitions["io.k8s.api.core.v1.Pod"]).be.ok();
+                        should(jsonSchema.definitions["io.k8s.api.core.v1.Pod"].type).be.equal("object");
+
+                    })
+            });
+
+    })
+    .timeout(20 * 1000)
+    ;
     
 });

@@ -2,7 +2,7 @@ import _ from 'the-lodash';
 import { Promise } from "the-promise";
 import { KubernetesClient } from "../client";
 
-import { KubernetesVersionInfoRaw, KubernetesVersionInfo } from "./types";
+import { KubernetesVersionInfoRaw, KubernetesVersionInfo, K8sOpenApiSpecs } from "./types";
 import { KubernetesOpenApiV3Response, KubernetesOpenApiV3Root } from './open-api-v3';
 import { KubernetesOpenApiV2Root } from './open-api-v2';
 
@@ -75,5 +75,43 @@ export class KubernetesOpenApiClient
         return this._client.request<KubernetesOpenApiV2Root>('GET', '/openapi/v2');
     }
 
+    queryApiSpecs() : Promise<K8sOpenApiSpecs>
+    {
+        return this.queryClusterVersion()
+            .then(version => {
+
+                return this.queryV3RootPaths()
+                    .then(() => {
+
+                        return this.queryV3AllPaths()
+                            .then(result => {
+
+                                const spec : K8sOpenApiSpecs = {
+                                    k8sVersion: version,
+                                    openApiVersion: '3.0',
+                                    openApiV3Data: result
+                                };
+                                return spec;
+                            })
+        
+                    })
+                    .catch(() => {
+
+                        return this.queryV2Root()
+                            .then(result => {
+
+                                const spec : K8sOpenApiSpecs = {
+                                    k8sVersion: version,
+                                    openApiVersion: '2.0',
+                                    openApiV2Data: result
+                                };
+                                return spec;
+
+                            });
+
+                    })
+                
+            })
+    }
     
 }

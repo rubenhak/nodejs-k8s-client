@@ -1,4 +1,5 @@
-import { K8sOpenApiPathExtension, OpenApiDefinition } from "./types";
+import { K8sOpenApiPathExtension } from "./types";
+import { OpenApiV3SchemaObject } from './open-api-v3-types';
 
 export interface KubernetesOpenApiV2Root
 {
@@ -13,7 +14,7 @@ export interface KubernetesOpenApiV2Root
         }
     },
     definitions: {
-        [name: string] : OpenApiDefinition
+        [name: string] : OpenApiV3SchemaObject
     },
     securityDefinitions: {
         [name: string] : any
