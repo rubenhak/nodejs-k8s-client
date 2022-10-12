@@ -188,13 +188,19 @@ describe('open-api', function() {
                         should(jsonSchema.resources).be.ok();
                         should(jsonSchema.definitions).be.ok();
 
-
                         should(jsonSchema.resources[_.stableStringify({ group: '', kind: 'Pod', version: 'v1'})]).be.equal("io.k8s.api.core.v1.Pod");
                         should(jsonSchema.resources[_.stableStringify({ group: '', kind: 'Service', version: 'v1'})]).be.equal("io.k8s.api.core.v1.Service");
                         should(jsonSchema.resources[_.stableStringify({ group: 'apps', kind: 'Deployment', version: 'v1'})]).be.equal("io.k8s.api.apps.v1.Deployment");
                         
-                        should(jsonSchema.definitions["io.k8s.api.core.v1.Pod"]).be.ok();
-                        should(jsonSchema.definitions["io.k8s.api.core.v1.Pod"].type).be.equal("object");
+                        const podDef = jsonSchema.definitions["io.k8s.api.core.v1.Pod"];
+                        should(podDef).be.ok();
+
+                        should(podDef.type).be.equal("object");
+
+                        should(podDef.properties).be.ok();
+                        should(podDef.properties.spec).be.ok();
+                        should(podDef.properties.spec.allOf).be.Array();
+                        should(podDef.properties.spec.allOf[0]['$ref']).be.equal("#/definitions/io.k8s.api.core.v1.PodSpec")
 
                     })
             });

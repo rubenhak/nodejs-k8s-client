@@ -147,7 +147,7 @@ export class BaseOpenApiDocumentParser
     private _convertRef(origRef: string) : string
     {
         const resourceKey = this._getResourceKeyFromRef(origRef);
-        return `#/components/schemas/${resourceKey}`;
+        return `#/definitions/${resourceKey}`;
     }
 
     private _getResourceKeyFromRef(origRef: string) : string
