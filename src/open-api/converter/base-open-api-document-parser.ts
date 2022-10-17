@@ -96,6 +96,11 @@ export class BaseOpenApiDocumentParser
             schema.default = openApiSchema.default;
         }
 
+        if (_.isNotNullOrUndefined(openApiSchema.required))
+        {
+            schema.required = openApiSchema.required;
+        }
+
         if (openApiSchema.type === "object")
         {
             schema.additionalProperties = false;
