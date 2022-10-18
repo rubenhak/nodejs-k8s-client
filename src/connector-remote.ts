@@ -9,18 +9,20 @@ import { readFileSync } from 'fs';
 import { basename } from "path";
 
 import { KubernetesClient, KubernetesClientConfig } from './client';
+import { ClusterConnectParams } from './connector-types';
 
 dotenv.config();
 
-export function connectDefaultRemoteCluster(logger : ILogger) : Promise<KubernetesClient>
+export function connectDefaultRemoteCluster(logger : ILogger, params? : ClusterConnectParams) : Promise<KubernetesClient>
 {
     const kubeConfigPath = process.env.KUBECONFIG ?? `${process.env.HOME}/.kube/config`;
 
-    return connectRemoteCluster(logger, kubeConfigPath, process.env.KUBE_CONTEXT_NAME);
+    return connectRemoteCluster(logger, kubeConfigPath, process.env.KUBE_CONTEXT_NAME, params);
 }
 
-export function connectRemoteCluster(logger : ILogger, kubeConfigPath: string, overrideKubeConfigContext?: string) : Promise<KubernetesClient>
+export function connectRemoteCluster(logger : ILogger, kubeConfigPath: string, overrideKubeConfigContext?: string, params? : ClusterConnectParams) : Promise<KubernetesClient>
 {
+    params = params || {};
     logger.info("KUBE CONFIG FILE: %s", kubeConfigPath);
     const kubeConfigContents = readFileSync(kubeConfigPath, 'utf8');
     const kubeConfig = yaml.loadAll(kubeConfigContents)[0] as any;
@@ -57,7 +59,12 @@ export function connectRemoteCluster(logger : ILogger, kubeConfigPath: string, o
             const k8sLogger = logger.sublogger('k8s');
             const client = new KubernetesClient(k8sLogger, clientConfig);
 
-            return client.init()
+            return Promise.resolve()
+                .then(() => {
+                    if (!params?.skipAPIFetch) {
+                        return client.init()
+                    }
+                })
                 .then(() => {
                     return client;
                 });
