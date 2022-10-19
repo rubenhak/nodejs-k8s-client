@@ -27,6 +27,7 @@ export interface OpenApiV3SchemaObject {
     properties?: { [property: string]: OpenApiV3SchemaObject };
     nullable?: boolean;
     required?: string[];
+    enum?: string[];
     allOf?: OpenApiV3SchemaObject[];
     anyOf?: OpenApiV3SchemaObject[];
     oneOf?: OpenApiV3SchemaObject[];

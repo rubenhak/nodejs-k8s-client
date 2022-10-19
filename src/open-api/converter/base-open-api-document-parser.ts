@@ -101,6 +101,11 @@ export class BaseOpenApiDocumentParser
             schema.required = openApiSchema.required;
         }
 
+        if (_.isNotNullOrUndefined(openApiSchema.enum))
+        {
+            schema.enum = openApiSchema.enum;
+        }
+
         if (openApiSchema.type === "object")
         {
             schema.additionalProperties = false;
