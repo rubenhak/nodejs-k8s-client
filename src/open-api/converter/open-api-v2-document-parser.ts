@@ -36,7 +36,8 @@ export class OpenApiV2DocumentParser extends BaseOpenApiDocumentParser
                             if (bodyParameter)
                             {
                                 const reference = bodyParameter.schema['$ref'];
-                                if (reference) {
+                                if (reference)
+                                {
                                     this._convertApiResource(path, apiResource, reference);
                                 }
                             }

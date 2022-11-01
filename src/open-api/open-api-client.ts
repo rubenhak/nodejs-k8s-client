@@ -75,43 +75,68 @@ export class KubernetesOpenApiClient
         return this._client.request<KubernetesOpenApiV2Root>('GET', '/openapi/v2');
     }
 
-    queryApiSpecs() : Promise<K8sOpenApiSpecs>
+    queryApiSpecs(options?: QueryApiSpecsOptions) : Promise<K8sOpenApiSpecs>
     {
+        options = options || {};
+
+        if (options.forceApiV2 && options.forceApiV3) {
+            throw new Error("Cannot use forceApiV2 and forceApiV3 at the same time.");
+        }
+
         return this.queryClusterVersion()
             .then(version => {
 
+                if (options!.forceApiV3) {
+                    return this._queryApiSpecsV3(version);
+                }
+                if (options!.forceApiV2) {
+                    return this._queryApiSpecsV2(version);
+                }
+
                 return this.queryV3RootPaths()
                     .then(() => {
-
-                        return this.queryV3AllPaths()
-                            .then(result => {
-
-                                const spec : K8sOpenApiSpecs = {
-                                    k8sVersion: version,
-                                    openApiVersion: '3.0',
-                                    openApiV3Data: result
-                                };
-                                return spec;
-                            })
-        
+                        return this._queryApiSpecsV3(version);
                     })
                     .catch(() => {
-
-                        return this.queryV2Root()
-                            .then(result => {
-
-                                const spec : K8sOpenApiSpecs = {
-                                    k8sVersion: version,
-                                    openApiVersion: '2.0',
-                                    openApiV2Data: result
-                                };
-                                return spec;
-
-                            });
-
-                    })
+                        return this._queryApiSpecsV2(version);
+                    });
                 
             })
     }
+
+    private _queryApiSpecsV3(k8sVersion: string) : Promise<K8sOpenApiSpecs>
+    {
+        return this.queryV3AllPaths()
+            .then(result => {
+
+                const spec : K8sOpenApiSpecs = {
+                    k8sVersion: k8sVersion,
+                    openApiVersion: '3.0',
+                    openApiV3Data: result
+                };
+                return spec;
+            });
+    }
+
+    private _queryApiSpecsV2(k8sVersion: string) : Promise<K8sOpenApiSpecs>
+    {
+        return this.queryV2Root()
+            .then(result => {
+
+                const spec : K8sOpenApiSpecs = {
+                    k8sVersion: k8sVersion,
+                    openApiVersion: '2.0',
+                    openApiV2Data: result
+                };
+                return spec;
+
+            });
+    }
     
+}
+
+export interface QueryApiSpecsOptions
+{
+    forceApiV2?: boolean;
+    forceApiV3?: boolean;
 }

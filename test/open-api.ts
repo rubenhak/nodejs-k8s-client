@@ -4,7 +4,7 @@ import 'mocha';
 import should = require('should');
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
-import { K8sOpenApiSpecToJsonSchemaConverter } from '../src';
+import { K8sOpenApiSpecs, K8sOpenApiSpecToJsonSchemaConverter } from '../src';
 
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
@@ -170,7 +170,7 @@ describe('open-api', function() {
     .timeout(20 * 1000)
     ;
 
-    it('open-api-to-json-schema-converter', function () {
+    it('open-api-to-json-schema-converter-default', function () {
 
         return fetchClient()
             .then(client => {
@@ -178,31 +178,43 @@ describe('open-api', function() {
 
                 return client.openAPI.queryApiSpecs()
                     .then(result => {
+                        validateAPIConverter(result);
+                    });
 
-                        should(result).be.ok();
+            });
 
-                        const converter = new K8sOpenApiSpecToJsonSchemaConverter(logger, result);
-                        const jsonSchema = converter.convert();
-                        
-                        should(jsonSchema).be.ok();
-                        should(jsonSchema.resources).be.ok();
-                        should(jsonSchema.definitions).be.ok();
+    })
+    .timeout(20 * 1000)
+    ;
 
-                        should(jsonSchema.resources[_.stableStringify({ group: '', kind: 'Pod', version: 'v1'})]).be.equal("io.k8s.api.core.v1.Pod");
-                        should(jsonSchema.resources[_.stableStringify({ group: '', kind: 'Service', version: 'v1'})]).be.equal("io.k8s.api.core.v1.Service");
-                        should(jsonSchema.resources[_.stableStringify({ group: 'apps', kind: 'Deployment', version: 'v1'})]).be.equal("io.k8s.api.apps.v1.Deployment");
-                        
-                        const podDef = jsonSchema.definitions["io.k8s.api.core.v1.Pod"];
-                        should(podDef).be.ok();
+    it('open-api-to-json-schema-converter-v2', function () {
 
-                        should(podDef.type).be.equal("object");
+        return fetchClient()
+            .then(client => {
+                should(client).be.ok();
 
-                        should(podDef.properties).be.ok();
-                        should(podDef.properties.spec).be.ok();
-                        should(podDef.properties.spec.allOf).be.Array();
-                        should(podDef.properties.spec.allOf[0]['$ref']).be.equal("#/definitions/io.k8s.api.core.v1.PodSpec")
+                return client.openAPI.queryApiSpecs({ forceApiV2: true })
+                    .then(result => {
+                        validateAPIConverter(result);
+                    });
 
-                    })
+            });
+
+    })
+    .timeout(20 * 1000)
+    ;
+
+    it('open-api-to-json-schema-converter-v3', function () {
+
+        return fetchClient()
+            .then(client => {
+                should(client).be.ok();
+
+                return client.openAPI.queryApiSpecs({ forceApiV3: true })
+                    .then(result => {
+                        validateAPIConverter(result);
+                    });
+
             });
 
     })
@@ -210,3 +222,63 @@ describe('open-api', function() {
     ;
     
 });
+
+// helpers
+function validateAPIConverter(result: K8sOpenApiSpecs)
+{
+    should(result).be.ok();
+
+    const converter = new K8sOpenApiSpecToJsonSchemaConverter(logger, result);
+    const jsonSchema = converter.convert();
+    
+    should(jsonSchema).be.ok();
+    should(jsonSchema.resources).be.ok();
+    should(jsonSchema.definitions).be.ok();
+
+    {
+        const resourceMeta = jsonSchema.resources[_.stableStringify({ group: '', kind: 'Pod', version: 'v1' })];
+        should(resourceMeta).be.an.Object();
+        should(resourceMeta.definitionId).be.equal("io.k8s.api.core.v1.Pod");
+        should(resourceMeta.namespaced).be.a.Boolean().and.True();
+    }
+
+    {
+        const resourceMeta = jsonSchema.resources[_.stableStringify({ group: '', kind: 'Service', version: 'v1' })];
+        should(resourceMeta).be.an.Object();
+        should(resourceMeta.definitionId).be.equal("io.k8s.api.core.v1.Service");
+        should(resourceMeta.namespaced).be.a.Boolean().and.True();
+    }
+
+    {
+        const resourceMeta = jsonSchema.resources[_.stableStringify({ group: 'apps', kind: 'Deployment', version: 'v1' })];
+        should(resourceMeta).be.an.Object();
+        should(resourceMeta.definitionId).be.equal("io.k8s.api.apps.v1.Deployment");
+        should(resourceMeta.namespaced).be.a.Boolean().and.True();
+    }
+    
+    {
+        const resourceMeta = jsonSchema.resources[_.stableStringify({ group: 'rbac.authorization.k8s.io', kind: 'ClusterRole', version: 'v1' })];
+        should(resourceMeta).be.an.Object();
+        should(resourceMeta.definitionId).be.equal("io.k8s.api.rbac.v1.ClusterRole");
+        should(resourceMeta.namespaced).be.a.Boolean().and.False();
+    }
+
+    const podDef = jsonSchema.definitions["io.k8s.api.core.v1.Pod"];
+    should(podDef).be.ok();
+
+    should(podDef.type).be.equal("object");
+
+    should(podDef.properties).be.ok();
+    should(podDef.properties.spec).be.ok();
+
+    if (podDef.properties.spec.allOf)
+    {
+        should(podDef.properties.spec.allOf).be.Array();
+        should(podDef.properties.spec.allOf[0]['$ref']).be.equal("#/definitions/io.k8s.api.core.v1.PodSpec")
+    }
+    else
+    {
+        should(podDef.properties.spec['$ref']).be.equal("#/definitions/io.k8s.api.core.v1.PodSpec")
+    }
+
+}

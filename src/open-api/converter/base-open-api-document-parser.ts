@@ -2,7 +2,7 @@ import _ from 'the-lodash';
 import { ILogger } from 'the-logger';
 import { SchemaObject } from 'ajv';
 
-import { K8sApiJsonSchema } from './types';
+import { K8sApiJsonSchema, K8sApiResourceInfo } from './types';
 
 import { OpenApiV3SchemaObject } from '../open-api-v3-types';
 import { K8sOpenApiResource } from '../types';
@@ -29,10 +29,14 @@ export class BaseOpenApiDocumentParser
         this._logger.debug("[_convertApiResource] ApiResource-V3: %s", path);
         this._logger.silly("[_convertApiResource] ApiResource-V3: %s => %s ::", path, resourceRef, apiResource);
 
+        const isNamespaced = _.includes(path, 'namespaces/{namespace}');
         this._convertReference(resourceRef);
         
-        const resourceKey = this._getResourceKeyFromRef(resourceRef);
-        this._k8sApiData.resources[_.stableStringify(apiResource)] = resourceKey;
+        const resourceInfo : K8sApiResourceInfo = {
+            definitionId: this._getResourceKeyFromRef(resourceRef),
+            namespaced: isNamespaced
+        }
+        this._k8sApiData.resources[_.stableStringify(apiResource)] = resourceInfo;
     }
 
     private _convertReference(origRef: string) : string
