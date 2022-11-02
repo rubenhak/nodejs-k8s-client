@@ -33,11 +33,9 @@ describe('hpa-watch', function() {
                     .then(() => {
                         watch.close();
                         
-                        should(resources['default::hpa-v1']).be.ok();
-                        should(resources['default::hpa-v2beta1']).be.ok();
-                        should(resources['default::hpa-v2beta2']).be.ok();
+                        should(resources['default::hpa-test']).be.ok();
 
-                        should(_.keys(resources).length).be.equal(3);
+                        should(_.keys(resources).length).be.equal(1);
                     })
 
             })
