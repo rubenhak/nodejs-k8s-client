@@ -36,7 +36,7 @@ export interface OpenApiv3PathInfo extends K8sOpenApiPathExtension
     parameters: {
         name: string,
         in: string,
-        required: boolean,
+        required?: boolean,
         schema: any
     }[],
     requestBody?: {

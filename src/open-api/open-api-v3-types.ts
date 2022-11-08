@@ -33,6 +33,8 @@ export interface OpenApiV3SchemaObject {
     oneOf?: OpenApiV3SchemaObject[];
     not?: OpenApiV3SchemaObject;
     additionalProperties?: boolean | OpenApiV3SchemaObject;
+
+    ["x-kubernetes-preserve-unknown-fields"]?: boolean;
 }
 
 export interface ComponentsObject {
