@@ -124,6 +124,13 @@ export class BaseOpenApiDocumentParser
                     schema.additionalProperties = this._convertSchema(openApiSchema.additionalProperties as OpenApiV3SchemaObject);
                 }
             }
+            else
+            {
+                if ((openApiSchema as any)['x-kubernetes-preserve-unknown-fields'])
+                {
+                    schema.additionalProperties = true;
+                }
+            }
         }
 
         return schema;
@@ -147,7 +154,8 @@ export class BaseOpenApiDocumentParser
 
     private _applyCustomFix(openApiSchema: OpenApiV3SchemaObject) : SchemaObject | null
     {
-        if (openApiSchema.format === 'int-or-string') {
+        if (openApiSchema.format === 'int-or-string')
+        {
             return {
                 oneOf: [
                     { type: "string" },
@@ -155,6 +163,7 @@ export class BaseOpenApiDocumentParser
                 ]
             }
         }
+
         return null;
     }
 
