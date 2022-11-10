@@ -16,8 +16,7 @@ import { ClusterInfoWatch } from './cluster-info-watch';
 
 import { KubernetesOpenApiClient } from './open-api/open-api-client';
 
-import { apiId, ApiResourceKey } from './utils';
-import { apiVersionId } from '../.history/src/utils_20221109220803';
+import { apiId, ApiResourceKey, apiVersionId } from './utils';
 
 export interface KubernetesClientConfig {
     httpAgent? : AgentOptions,
