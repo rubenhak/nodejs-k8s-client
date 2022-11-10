@@ -16,7 +16,8 @@ import { ClusterInfoWatch } from './cluster-info-watch';
 
 import { KubernetesOpenApiClient } from './open-api/open-api-client';
 
-import { apiId } from './utils';
+import { apiId, ApiResourceKey } from './utils';
+import { apiVersionId } from '../.history/src/utils_20221109220803';
 
 export interface KubernetesClientConfig {
     httpAgent? : AgentOptions,
@@ -28,6 +29,12 @@ export type ClusterInfoWatchCallback = (isPresent: boolean, apiGroup: ApiGroupIn
 
 const SyncClient = rpc(__dirname + '/client-sync.js', {});
 
+interface ApiResourceAccessor
+{
+    version: string;
+    allVersions: { [version: string] : boolean };
+    accessors: { [version: string] : ResourceAccessor };
+}
 
 export class KubernetesClient
 {
@@ -36,8 +43,14 @@ export class KubernetesClient
 
     private _isClosed: boolean = false;
 
-    private _clusterInfo : ClusterInfo | null = null;
+    private _clusterInfo : ClusterInfo = {
+        rootApiVersion : "",
+        apiGroups : [],
+        enabledApiGroups : {},
+        preferredVersions : {}
+    };
     private _enabledApiGroups : Record<string, ApiGroupInfo> = {};
+    private _preferredApiVersions : Record<string, string> = {};
 
     private _resources: Record<string, ResourceAccessor> = {};
 
@@ -181,6 +194,7 @@ export class KubernetesClient
         for(const resource of _.values(this._resources)) {
             resource.close();
         }
+        this._resources = {};
     }
 
     watchClusterApi(cb: ClusterInfoWatchCallback, delay? : number)
@@ -236,11 +250,16 @@ export class KubernetesClient
 
         this.logger.info("[_setupClusterInfoRefreshTimer] setTimeout. delay: %s", delay);
         this._clusterInfoRefreshTimer = setTimeout(() => {
-            this._refreshClusterResources()
+            Promise.resolve(null)
+                .then(() => this._refreshClusterResources())
                 .then(() => {
                     this._clusterInfoRefreshTimer = null;
                     this._setupClusterInfoRefreshTimer();
                 })
+                .catch(reason => {
+                    this.logger.error("[_setupClusterInfoRefreshTimer] ERROR: ", reason);
+                })
+                .then(() => null);
         }, delay)
 
     }
@@ -276,56 +295,109 @@ export class KubernetesClient
         return fetcher.perform();
     }
 
+    private _groupVersions : Record<string, Record<string, ApiResourceInfo>> = {};
+    private _preferredApiResourceInfos : Record<string, ApiResourceInfo> = {};
+
     private _applyClusterInfo(clusterInfo: ClusterInfo)
     {
-        const toBeDeleted : ApiGroupInfo[] = [];
-        const toBeCreated : { api: ApiGroupInfo, client?: ResourceAccessor }[] = [];
+        const groupVersions : Record<string, Record<string, ApiResourceInfo>> = {};
+        const preferredApiResourceInfos : Record<string, ApiResourceInfo> = {};
 
         for(const api of _.values(clusterInfo.enabledApiGroups))
         {
-            const currApi = this._enabledApiGroups[api.id]
+            for(const version of api.allVersions)
+            {
+                const key : ApiResourceKey = {
+                    api: api.apiName,
+                    version: version,
+                    kind: api.kindName
+                }
+                const resourceInfo : ApiResourceInfo = {
+                    key: key,
+                    group: api
+                };
+
+                if (!groupVersions[api.id]) {
+                    groupVersions[api.id] = {};
+                }
+                groupVersions[api.id][version] = resourceInfo;
+            }
+
+            {
+                const key : ApiResourceKey = {
+                    api: api.apiName,
+                    version: api.version,
+                    kind: api.kindName
+                }
+                preferredApiResourceInfos[api.id] = {
+                    key: key,
+                    group: api
+                }
+            }
+        }
+        // this.logger.error("[_applyClusterInfo] >>>>>>>> groupVersions: ", groupVersions);
+        // this.logger.error("[_applyClusterInfo] >>>>>>>> preferredVersions: ", preferredApiResourceInfos);
+
+        const toBeDeletedNotification : ApiGroupInfo[] = [];
+        const toBeCreatedNotification : { api: ApiGroupInfo, client?: ResourceAccessor }[] = [];
+
+        for(const apiId of _.keys(preferredApiResourceInfos))
+        {
+            const newApi = preferredApiResourceInfos[apiId];
+
+            const currApi = this._preferredApiResourceInfos[apiId];
             if (!currApi) {
-                toBeCreated.push({ api });
+                toBeCreatedNotification.push({ api: newApi.group });
             } else {
-                if (currApi.version !== api.version) {
-                    toBeDeleted.push(currApi);
-                    toBeCreated.push({ api });
+                if (currApi.key.version !== newApi.key.version) {
+                    toBeDeletedNotification.push(currApi.group);
+                    toBeCreatedNotification.push({ api: newApi.group });
                 }
             }
         }
 
-        for(const currApi of _.values(this._enabledApiGroups))
+        for(const apiId of _.keys(this._preferredApiResourceInfos))
         {
-            const api = clusterInfo.enabledApiGroups[currApi.id]
-            if (!api) {
-                toBeDeleted.push(currApi);
+            const currApi = this._preferredApiResourceInfos[apiId];
+            const newApi = preferredApiResourceInfos[apiId]
+            if (!newApi) {
+                toBeDeletedNotification.push(currApi.group);
             }
         }
 
         this._clusterInfo = clusterInfo;
+        this._preferredApiVersions = clusterInfo.preferredVersions;
         this._enabledApiGroups = clusterInfo.enabledApiGroups;
 
-        for(const api of toBeDeleted)
+        this._groupVersions = groupVersions;
+        this._preferredApiResourceInfos = preferredApiResourceInfos;
+    
+        for(const apiGroup of toBeDeletedNotification)
         {
-            const client = this._resources[api.id];
-            if (client) {
-                client.close();
+            const apiVersionsInfo = this._groupVersions[apiGroup.id];
+            for(const apiVersionInfo of _.values(apiVersionsInfo))
+            {
+                const accessorKey = apiVersionId(apiVersionInfo.key);
+                if (this._resources[accessorKey]) {
+                    this._resources[accessorKey].close();
+                    delete this._resources[accessorKey];
+                }
             }
         }
 
-        for(const api of toBeCreated)
+        for(const api of toBeCreatedNotification)
         {
-            api.client = this._setupResource(api.api);
+            api.client = this.client(api.api.kindName, api.api.apiName, api.api.version)!;
         }
 
         return Promise.resolve()
             .then(() => {
-                return Promise.serial(toBeDeleted, x => {
+                return Promise.serial(toBeDeletedNotification, x => {
                     this._notifyApi(false, x)
                 })
             })
             .then(() => {
-                return Promise.serial(toBeCreated, x => {
+                return Promise.serial(toBeCreatedNotification, x => {
                     this._notifyApi(true, x.api, x.client!)
                 })
             })
@@ -338,29 +410,41 @@ export class KubernetesClient
         })
     }
     
-    private _setupResource(apiGroupInfo : ApiGroupInfo) : ResourceAccessor
+    client(kindName: string, apiName?: string | null, version?: string) : ResourceAccessor | null
     {
-        this.logger.info("[_setupResource] Setup. Resource: %s :: %s...", apiGroupInfo.id, apiGroupInfo.version)
+        const apiKey = apiId(kindName, apiName ?? null);
 
-        const client = new ResourceAccessor(this,
-            apiGroupInfo.apiName,
-            apiGroupInfo.version,
-            apiGroupInfo.pluralName,
-            apiGroupInfo.kindName);
+        const apiGroupInfo = this._clusterInfo?.enabledApiGroups[apiKey];
+        if (!apiGroupInfo) {
+            return null;
+        }
 
-        this._resources[apiGroupInfo.id] = client;
+        if (!version) {
+            version = apiGroupInfo.version;
+        }
 
-        return client;
-    }
+        const apiVersionInfo = this._groupVersions[apiKey];
+        if (!apiVersionInfo) {
+            return null;
+        }
 
-    client(kindName: string, apiName?: string | null) : ResourceAccessor | null
-    {
-        const id = apiId(kindName, apiName ?? null);
+        const specificVersionInfo = apiVersionInfo[version];
+        if (!specificVersionInfo) {
+            return null;
+        }
 
-        this.logger.info("[client] GET CLIENT: %s", id)
+        const accessorKey = apiVersionId(specificVersionInfo.key);
+        if (!this._resources[accessorKey]) {
+            this._resources[accessorKey] = new ResourceAccessor(this,
+                apiGroupInfo.apiName,
+                apiGroupInfo.version,
+                apiGroupInfo.pluralName,
+                apiGroupInfo.kindName);
+        }
+        
+        // this.logger.info("[client] GET CLIENT: ", specificVersionInfo.key)
 
-        const client = this._resources[id];
-        return client || null;
+        return this._resources[accessorKey];
     }
 
     request<T = any>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
@@ -509,4 +593,11 @@ export class KubernetesClient
             url: options.url
         };
     }
+}
+
+
+export interface ApiResourceInfo
+{
+    key: ApiResourceKey,
+    group: ApiGroupInfo
 }

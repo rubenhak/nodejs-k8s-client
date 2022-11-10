@@ -5,7 +5,6 @@ import should = require('should');
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
 import { Promise } from 'the-promise';
-import { KubernetesObject } from '../src';
 import { DeltaAction, ResourceWatch } from '../src/resource-watch';
 import { apiId } from '../src/utils';
 

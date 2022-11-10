@@ -10,6 +10,8 @@ import { apiId } from '../src/utils';
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
 
+const WATCH_DURATION = 10 * 1000;
+const REFRESH_INTERVAL = 5 * 1000;
 
 describe('api-watch-simple', function() {
 
@@ -21,22 +23,24 @@ describe('api-watch-simple', function() {
             .then(client => {
 
                 client.watchClusterApi((isPresent, api) => {
-                    logger.info(">>>>>> API. Present: %s, Name: %s", isPresent, api.id);
+                    logger.info(">>>>>> API. Present: %s, Name: %s :: %s", isPresent, api.id, api.version);
                     if (isPresent) {
                         apis[api.id] = true;
                     } else {
                         delete apis[api.id];
                     }
-                }, 3000)
+                }, REFRESH_INTERVAL)
                 
-                return Promise.timeout(5 * 1000)
+                return Promise.timeout(WATCH_DURATION)
                     .then(() => client.close());
             })
             .then(result => {
                 should(apis[apiId('DaemonSet', 'apps')]).be.true();
+                should(apis[apiId('Pod', null)]).be.true();
+                should(apis[apiId('HorizontalPodAutoscaler', 'autoscaling')]).be.true();
             });
 
     })
-    .timeout(10 * 1000);
+    .timeout(WATCH_DURATION + 5 * 1000);
     
 });

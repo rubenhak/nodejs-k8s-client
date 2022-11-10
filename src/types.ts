@@ -10,6 +10,8 @@ export interface ApiGroupInfo
     pluralName: string,
     isNamespaced: boolean,
     verbs: string[],
+    
+    allVersions: string[],
 
     isEnabled: boolean,
 }

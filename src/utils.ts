@@ -9,3 +9,20 @@ export function apiId(kindName: string, apiName: string | null) //, apiVersionNa
     }
     return _.stableStringify(id);
 }
+
+export function apiVersionId(key: ApiResourceKey) //, apiVersionName: string)
+{
+    const id = {
+        kind: key.kind,
+        api: key.api ?? undefined,
+        version: key.version
+    }
+    return _.stableStringify(id);
+}
+
+export interface ApiResourceKey
+{
+    kind: string;
+    api: string | null;
+    version: string;
+}

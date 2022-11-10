@@ -154,7 +154,8 @@ export class ClusterInfoFetcher
             pluralName: pluralName,
             isNamespaced: isNamespaced,
             verbs: verbs,
-            isEnabled: true
+            isEnabled: true,
+            allVersions: []
         };
 
         this.logger.silly("[_setupApiGroup] %s => ", id, apiGroupInfo)
@@ -169,7 +170,6 @@ export class ClusterInfoFetcher
         this._apiGroups[id].versions.push(apiGroupInfo);
     }
 
-
     private _finalizeApis()
     {
         // this.logger.silly("[_finalizeApis] ", this._apiGroups);
@@ -177,6 +177,7 @@ export class ClusterInfoFetcher
         for(const apiGroupVersions of _.values(this._apiGroups))
         {
             const selectedApiGroup = this._selectApiGroupVersion(apiGroupVersions);
+            selectedApiGroup.allVersions = apiGroupVersions.versions.map(x => x.version);
             this._selectedApiGroups.push(selectedApiGroup);
             
             this._finalizeApi(selectedApiGroup);

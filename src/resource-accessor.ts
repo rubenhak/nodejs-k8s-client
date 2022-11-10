@@ -52,7 +52,8 @@ export class ResourceAccessor
         for(const watch of _.values(this._watches))
         {
             watch.close();
-        }   
+        }
+        this._watches = {};
     }
 
     queryAll(namespace?: string, labelFilter? : any) : Promise<KubernetesObject[]>
