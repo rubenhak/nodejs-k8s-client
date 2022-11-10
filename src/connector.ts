@@ -10,6 +10,7 @@ dotenv.config()
 export function connectFromPod(logger : ILogger, params? : ClusterConnectParams) : Promise<KubernetesClient>
 {
     params = params || {};
+    params.skipAPIFetch = params.skipAPIFetch ?? false;
 
     const k8sConfig : KubernetesClientConfig = {
         server: 'https://' + process.env.KUBERNETES_SERVICE_HOST + ':' + process.env.KUBERNETES_SERVICE_PORT_HTTPS,

@@ -42,10 +42,23 @@ describe('deployment-query', function() {
             })
             .then(result => {
                 should(result).be.ok();
-                should(result.apiVersion).startWith('apps/')
-                should(result.kind).be.equal('Deployment')
-                should(result.metadata.name).be.equal('coredns')
-                should(result.metadata.namespace).be.equal('kube-system')
+                should(result!.apiVersion).startWith('apps/')
+                should(result!.kind).be.equal('Deployment')
+                should(result!.metadata.name).be.equal('coredns')
+                should(result!.metadata.namespace).be.equal('kube-system')
+            });
+
+    });
+
+    it('deployment-query-one-missing', function () {
+        
+        return fetchClient()
+            .then(client => {
+                should(client.Deployment).be.ok();
+                return client.Deployment!.query("kube-system", "missing")
+            })
+            .then(result => {
+                should(result).be.null();
             });
 
     });

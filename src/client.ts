@@ -3,7 +3,8 @@ import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
 import { v4 as uuidv4 } from 'uuid';
 
-import axios, { AxiosRequestConfig } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+const rpc = require('sync-rpc');
  
 import { Agent as HttpsAgent, AgentOptions } from 'https';
 
@@ -24,6 +25,9 @@ export interface KubernetesClientConfig {
 }
 
 export type ClusterInfoWatchCallback = (isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor) => any;
+
+const SyncClient = rpc(__dirname + '/client-sync.js', {});
+
 
 export class KubernetesClient
 {
@@ -255,7 +259,6 @@ export class KubernetesClient
     {
         return this._setupClusterResources()
             .then(() => {
-
             })
     }
 
@@ -363,7 +366,56 @@ export class KubernetesClient
     request<T = any>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
     {
         this._logger.debug('[request] %s => %s...', method, url);
+        this.logger.debug("[request] -> %s", url);
 
+        const options = this._makeAxiosOptions(method, url, params, body, useStream);
+
+        this._logger.silly('[request] Begin', options);
+        return Promise.resolve()
+            .then(() => axios(options))
+            .then(result => {
+                this._logger.silly('[request] RAW RESULT:', result);
+
+                if (useStream) {
+                    return result;
+                }
+
+                return this._handleAxiosResponse(result);
+            })
+            .catch(reason => {
+                return this._handleAxiosError(reason, options);
+            });
+    }
+
+    requestSync<T = any>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null) : T
+    {
+        this._logger.debug('[requestSync] %s => %s...', method, url);
+        this.logger.debug("[requestSync] -> %s", url);
+
+        const options = this._makeAxiosOptions(method, url, params, body, false);
+
+        this._logger.silly('[requestSync] Begin', options);
+
+        const result : {
+            success: boolean,
+            response?: AxiosResponse<any>,
+            reason?: any
+        } = SyncClient(options);
+
+        this._logger.silly('[requestSync] RAW RESULT:', result);
+
+        if (result.success)
+        {
+            return this._handleAxiosResponse(result.response!);
+        }
+        else
+        {
+            return this._handleAxiosError(result.reason, options);
+        }
+    }
+
+    private _makeAxiosOptions(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : AxiosRequestConfig
+    {
         const httpAgentParams = this._config.httpAgent || {};
         const options : AxiosRequestConfig = {
             method: method,
@@ -387,78 +439,74 @@ export class KubernetesClient
         if (useStream) {
             options.responseType = 'stream';
         }
+        return options;
+    }
 
-        this.logger.debug("[request] -> %s", url);
-        this._logger.silly('[request] Begin', options);
-        return Promise.resolve()
-            .then(() => axios(options))
-            .then(result => {
-                this._logger.silly('[request] RAW RESULT:', result);
+    private _handleAxiosResponse<T = any>(result: AxiosResponse<any>) : T
+    {
+        this._logger.silly('[request] RAW RESULT:', result);
 
-                if (useStream) {
-                    return result;
-                }
+        const resultData = result.data;
+        if (!resultData) {
+            throw new Error("No result");
+        }
+        if (resultData.kind == "Status") {
+            if (resultData.status == "Failure") {
+                throw new KubernetesError(resultData.message, resultData.code);
+            }
+        }
+        return <T>resultData;
+    }
 
-                const resultData = result.data;
-                if (!resultData) {
-                    throw new Error("No result");
-                }
-                if (resultData.kind == "Status") {
-                    if (resultData.status == "Failure") {
-                        throw new KubernetesError(resultData.message, resultData.code);
+    private _handleAxiosError(reason: any, options : AxiosRequestConfig)
+    {
+        const response = reason.response;
+        let status = 0;
+        let errorMessage = '';
+        if (response) {
+            status = response.status;
+            errorMessage = response.statusText;
+
+            this._logger.warn('[request] Failed. Method: %s. StatusCode: %s-%s. ',
+                options.method,
+                status,
+                errorMessage);
+        } else {
+            errorMessage = reason.message;
+
+            this._logger.warn('[request] Failed. Method: %s. Connection Error: ',
+            options.method,
+                reason);
+        }
+
+        if (options.method === 'GET') {
+            if (status == 404) {
+                return null;
+            }
+        }
+
+        if (options.method == 'DELETE') {
+            if (status == 404) {
+                return reason;
+            }
+        }
+
+        if (response) {
+            if (response.data) {
+                if (response.data.kind == "Status") {
+                    if (response.data.status == "Failure") {
+                        throw new KubernetesError(reason.response.data.message, reason.response.data.code);
                     }
                 }
-                return <T>resultData;
-            })
-            .catch(reason => {
-                const response = reason.response;
-                let status = 0;
-                let errorMessage = '';
-                if (response) {
-                    status = response.status;
-                    errorMessage = response.statusText;
+            }
+        }
 
-                    this._logger.warn('[request] Failed. Method: %s. StatusCode: %s-%s. ',
-                        method,
-                        status,
-                        errorMessage);
-                } else {
-                    errorMessage = reason.message;
-
-                    this._logger.warn('[request] Failed. Method: %s. Connection Error: ',
-                        method,
-                        reason);
-                }
-
-                if (method == 'GET') {
-                    if (status == 404) {
-                        return null;
-                    }
-                }
-
-                if (method == 'DELETE') {
-                    if (status == 404) {
-                        return reason;
-                    }
-                }
-
-                if (response) {
-                    if (response.data) {
-                        if (response.data.kind == "Status") {
-                            if (response.data.status == "Failure") {
-                                throw new KubernetesError(reason.response.data.message, reason.response.data.code);
-                            }
-                        }
-                    }
-                }
-
-                throw {
-                    status: status,
-                    message: errorMessage,
-                    method: options.method,
-                    baseURL: options.baseURL,
-                    url: options.url
-                };
-            });
+        throw {
+            status: status,
+            message: errorMessage,
+            method: options.method,
+            baseURL: options.baseURL,
+            url: options.url
+        };
     }
 }

@@ -55,27 +55,39 @@ export class ResourceAccessor
         }   
     }
 
-    queryAll(namespace?: string, labelFilter? : any)
+    queryAll(namespace?: string, labelFilter? : any) : Promise<KubernetesObject[]>
     {
         const uriParts = this._makeUriParts(namespace);
         return this._getRequest<any>(uriParts, { labelSelector: labelFilter })
             .then(result => {
-                if (!result) {
-                    return <KubernetesObject[]>[];
-                }
-                for(const x of result.items)
-                {
-                    if (!x.kind) {
-                        x.kind = this.kindName;
-                    }
-                    if (!x.apiVersion) {
-                        x.apiVersion = result.apiVersion;
-                    }
-                }
-                return <KubernetesObject[]>result.items;
+                return this._formatQueryAllResult(result);
             });
     }
-    
+
+    queryAllSync(namespace?: string, labelFilter? : any) : KubernetesObject[]
+    {
+        const uriParts = this._makeUriParts(namespace);
+        const result = this._getRequestSync<any>(uriParts, { labelSelector: labelFilter });
+        return this._formatQueryAllResult(result);
+    }
+
+    private _formatQueryAllResult(result: any)
+    {
+        if (!result) {
+            return <KubernetesObject[]>[];
+        }
+        for(const x of result.items)
+        {
+            if (!x.kind) {
+                x.kind = this.kindName;
+            }
+            if (!x.apiVersion) {
+                x.apiVersion = result.apiVersion;
+            }
+        }
+        return <KubernetesObject[]>result.items;
+    }
+
     watchAll(namespace: string | null, cb: WatchCallback, connectCb: ConnectCallback, disconnectCb: DisconnectCallback)
     {
         const id = uuidv4();
@@ -101,11 +113,18 @@ export class ResourceAccessor
         return watch;
     }
 
-    query(namespace: string | null, name: string)
+    query(namespace: string | null, name: string) : Promise<KubernetesObject | null>
     {
         const uriParts = this._makeUriParts(namespace);
-        uriParts.push(name)
+        uriParts.push(name);
         return this._getRequest<KubernetesObject>(uriParts);
+    }
+
+    querySync(namespace: string | null, name: string) : KubernetesObject | null
+    {
+        const uriParts = this._makeUriParts(namespace);
+        uriParts.push(name);
+        return this._getRequestSync<KubernetesObject | null>(uriParts);
     }
 
     create(namespace: string | null, body: any)
@@ -131,10 +150,16 @@ export class ResourceAccessor
         return this._putRequest(uriParts, {}, newBody)
     }
 
-    private _getRequest<T>(uriParts: string[], params? : Record<string, any>)
+    private _getRequest<T>(uriParts: string[], params? : Record<string, any>)  : Promise<T>
     {
         const url = this._joinUrls(uriParts);
         this.logger.info('[_getRequest] %s', url);
+        params = this._makeGetParams(params);
+        return this._parent.request<T>('GET', url, params);
+    }
+
+    private _makeGetParams(params? : Record<string, any>) : Record<string, any> | undefined
+    {
         if (params) {
             params = _.clone(params);
             if (params.labelSelector) {
@@ -145,7 +170,15 @@ export class ResourceAccessor
                 params.labelSelector = selectorParts.join(',');
             }
         }
-        return this._parent.request<T>('GET', url, params);
+        return params;
+    }
+
+    private _getRequestSync<T>(uriParts: string[], params? : Record<string, any>) : T
+    {
+        const url = this._joinUrls(uriParts);
+        this.logger.info('[_getRequestSync] %s', url);
+        params = this._makeGetParams(params);
+        return this._parent.requestSync<T>('GET', url, params);
     }
 
     private _postRequest(uriParts: string[], params? : Record<string, any>, body? : Record<string, any> | null)

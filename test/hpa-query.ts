@@ -41,9 +41,9 @@ describe('hpa-query', function() {
             .then(result => {
                 should(result).be.ok();
 
-                should(result.kind).be.equal("HorizontalPodAutoscaler");
-                should(result.metadata.namespace).be.equal("default");
-                should(result.metadata.name).be.equal("hpa-test");
+                should(result!.kind).be.equal("HorizontalPodAutoscaler");
+                should(result!.metadata.namespace).be.equal("default");
+                should(result!.metadata.name).be.equal("hpa-test");
             });
 
     });

@@ -23,6 +23,8 @@ export function connectDefaultRemoteCluster(logger : ILogger, params? : ClusterC
 export function connectRemoteCluster(logger : ILogger, kubeConfigPath: string, overrideKubeConfigContext?: string, params? : ClusterConnectParams) : Promise<KubernetesClient>
 {
     params = params || {};
+    params.skipAPIFetch = params.skipAPIFetch ?? false;
+    
     logger.info("KUBE CONFIG FILE: %s", kubeConfigPath);
     const kubeConfigContents = readFileSync(kubeConfigPath, 'utf8');
     const kubeConfig = yaml.loadAll(kubeConfigContents)[0] as any;
