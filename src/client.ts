@@ -26,7 +26,7 @@ export interface KubernetesClientConfig {
 
 export type ClusterInfoWatchCallback = (isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor) => any;
 
-const SyncClient = rpc(__dirname + '/client-sync.js', {});
+let RPCSyncClient : any = null; rpc(__dirname + '/client-sync.js', {});
 
 interface ApiResourceAccessor
 {
@@ -479,11 +479,15 @@ export class KubernetesClient
 
         this._logger.silly('[requestSync] Begin', options);
 
+        if (!RPCSyncClient) {
+            RPCSyncClient = rpc(__dirname + '/client-sync.js', {});
+        }
+
         const result : {
             success: boolean,
             response?: AxiosResponse<any>,
             reason?: any
-        } = SyncClient(options);
+        } = RPCSyncClient(options);
 
         this._logger.silly('[requestSync] RAW RESULT:', result);
 
