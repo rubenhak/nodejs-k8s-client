@@ -35,3 +35,10 @@ $ ./publish.sh
 ```sh
 $ travis encrypt <NPM-KEY-GOES-HERE> --add deploy.api_key
 ```
+
+
+## TODO:
+Explore this libarr:
+```
+yarn add syncingabout
+```

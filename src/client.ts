@@ -26,14 +26,7 @@ export interface KubernetesClientConfig {
 
 export type ClusterInfoWatchCallback = (isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor) => any;
 
-let RPCSyncClient : any = null; rpc(__dirname + '/client-sync.js', {});
-
-interface ApiResourceAccessor
-{
-    version: string;
-    allVersions: { [version: string] : boolean };
-    accessors: { [version: string] : ResourceAccessor };
-}
+let RPCSyncClient : any = null;
 
 export class KubernetesClient
 {

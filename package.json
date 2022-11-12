@@ -8,7 +8,7 @@
     "dist/**/*"
   ],
   "scripts": {
-    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'test/**/*.ts'",
+    "test": "mocha -r ts-node/register 'test/**/*.ts'",
     "build": "tsc",
     "format": "prettier --write ./src/ ./test/",
     "format-check": "prettier --write ./src/ ./test/",
