@@ -1,5 +1,5 @@
 
-export default async function(value) {
+exports.default = async function(value) {
 
   if (value === 4000) {
     throw new Error("4000 is not allowed");

@@ -486,7 +486,7 @@ export class KubernetesClient
         this._logger.silly('[requestSync] Begin', options);
 
         if (!RPCSyncClient) {
-            RPCSyncClient = SyncAbout('./client-sync/method.mjs');
+            RPCSyncClient = SyncAbout('./client-sync/method.js');
         }
 
         const result : {

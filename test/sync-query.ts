@@ -1,5 +1,4 @@
 import { logger } from './utils/logger';
-
 import 'mocha';
 import should = require('should');
 import _ from 'the-lodash';
@@ -7,10 +6,10 @@ import { fetchClient } from './utils/client';
 
 describe('sync-query', function() {
 
-    it('sync-query-all-with-ns', function () {
+    it('sync-query-all-with-ns', async function () {
         
         return fetchClient()
-            .then(client => {
+            .then((client) => {
 
                 should(client.Pod).be.ok();
                 const result = client.Pod!.queryAllSync("kube-system")
@@ -24,7 +23,9 @@ describe('sync-query', function() {
                 should(names).matchAny(x => _.startsWith(x, "coredns"));
             })
 
-    });
+    })
+    .timeout(10 * 1000)
+    ;
 
     it('sync-query-all-no-ns', function () {
         

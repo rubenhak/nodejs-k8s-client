@@ -10,7 +10,7 @@ describe('syncingabout-tests', function() {
 
     it('simple', function () {
 
-        const method = build('../test/syncingabout-method.mjs');
+        const method = build('../test/syncingabout-method.js');
 
         const result = method(2047);
 
@@ -21,7 +21,7 @@ describe('syncingabout-tests', function() {
 
     it('two-calls', function () {
 
-        const method = build('../test/syncingabout-method.mjs');
+        const method = build('../test/syncingabout-method.js');
 
         {
             const result = method(2040);
@@ -38,7 +38,7 @@ describe('syncingabout-tests', function() {
 
     it('throws-exception', function () {
 
-        const method = build('../test/syncingabout-method.mjs');
+        const method = build('../test/syncingabout-method.js');
 
         let error : any = null;
         try
@@ -58,7 +58,7 @@ describe('syncingabout-tests', function() {
 
     it('sync-promise-rejection', function () {
 
-        const method = build('../test/syncingabout-method.mjs');
+        const method = build('../test/syncingabout-method.js');
 
         let error : any = null;
         try

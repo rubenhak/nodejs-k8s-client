@@ -1,8 +1,8 @@
-const axiosModule = await import("axios");
+const axiosModule = require("axios").default;
 const axios = axiosModule.default;
-const https = await import("https");
+const https = require("https");
 
-export default async function (options)
+exports.default = async function (options)
 {
   const axiosRequest = {
     method: options.method,
@@ -13,7 +13,7 @@ export default async function (options)
     params: options.params,
     data: options.data,
     responseType: options.responseType,
-}
+  }
 
   return axios(axiosRequest)
     .then((result) => {

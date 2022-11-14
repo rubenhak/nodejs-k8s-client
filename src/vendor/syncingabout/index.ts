@@ -1,14 +1,14 @@
 
 import { Worker, MessageChannel, receiveMessageOnPort } from 'worker_threads';
 
-
 /**
  * @param {string} workerPath
  * @return {(...args: any) => any}
  */
 export default function build(workerPath: string) : (...args: any) => any
 {
-  const taskPath = __dirname + '/task.mjs';
+  const taskPath = __dirname + '/task.js';
+  // console.error("|-  MY PATH: ", __filename);
   // console.error("|- TaskPath: ", taskPath);
 
   const w = new Worker(taskPath, { 
@@ -20,9 +20,9 @@ export default function build(workerPath: string) : (...args: any) => any
     throw err;
   })
 
-  w.on('exit', (code) => {
-    console.error("|- K8s-CLIENT WORKER EXIT: ", code);
-  })
+  // w.on('exit', (code) => {
+  //   console.error("|- K8s-CLIENT WORKER EXIT: ", code);
+  // })
 
   w.unref();
 
@@ -43,10 +43,9 @@ export default function build(workerPath: string) : (...args: any) => any
 
       Atomics.wait(int32, 0, 0);
 
-      /** @type {{message: {return?: any, error?: any}}|undefined} */
       const m = receiveMessageOnPort(localPort);
       if (m === undefined) {
-        throw new Error(`did not get async reply in time`);
+        throw new Error(`[SyncAbout] did not get async reply in time`);
       }
 
       const { message } = m;
