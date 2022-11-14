@@ -1,3 +1,5 @@
+import { logger } from './utils/logger';
+
 import 'mocha';
 import should = require('should');
 import _ from 'the-lodash';

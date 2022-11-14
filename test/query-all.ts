@@ -1,4 +1,4 @@
-import { setupLogger, LoggerOptions } from 'the-logger';
+import { logger } from './utils/logger';
 
 import 'mocha';
 import should = require('should');
@@ -6,9 +6,6 @@ import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
 import { Promise } from 'the-promise';
 import { KubernetesObject } from '../src';
-
-const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
-const logger = setupLogger('test', loggerOptions);
 
 
 describe('query-all', function() {

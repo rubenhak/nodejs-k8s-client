@@ -1,13 +1,10 @@
-import { setupLogger, LoggerOptions, LogLevel } from 'the-logger';
+import { logger } from './utils/logger';
 
 import 'mocha';
 import should = require('should');
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
 
-const loggerOptions = new LoggerOptions().enableFile(false).pretty(true)
-    // .level(LogLevel.verbose)
-const logger = setupLogger('test', loggerOptions);
 
 describe('dev-experiment', function() {
 
