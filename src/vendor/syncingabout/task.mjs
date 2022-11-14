@@ -7,8 +7,9 @@ if (!parentPort) {
   throw new Error(`expected port`);
 }
 
-const workerPath = /** @type {string} */ (workerData);
-const importPromise = import('../../' + workerPath);
+const workerPath = /** @type {string} */ ('../../' + workerData);
+// console.error("|- IN TASK. workerPath: ", workerPath);
+const importPromise = import(workerPath);
 
 parentPort.on('message', (message) => {
   (async () => {

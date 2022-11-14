@@ -9,6 +9,8 @@ import { Worker, MessageChannel, receiveMessageOnPort } from 'worker_threads';
 export default function build(workerPath: string) : (...args: any) => any
 {
   const taskPath = __dirname + '/task.mjs';
+  // console.error("|- TaskPath: ", taskPath);
+
   const w = new Worker(taskPath, { 
     workerData: workerPath,
   });

@@ -485,8 +485,6 @@ export class KubernetesClient
 
         this._logger.silly('[requestSync] Begin', options);
 
-        console.log("***** requestSync");
-
         if (!RPCSyncClient) {
             RPCSyncClient = SyncAbout('./client-sync/method.mjs');
         }
@@ -496,8 +494,6 @@ export class KubernetesClient
             response?: AxiosResponse<any>,
             reason?: any
         } = RPCSyncClient(options);
-
-        // throw new Error("ZZZZZ")
 
         this._logger.silly('[requestSync] RAW RESULT:', result);
 
