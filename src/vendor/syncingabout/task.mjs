@@ -1,19 +1,14 @@
 import { workerData, parentPort } from 'worker_threads';
 
-
-console.log('&&&&&&&& *******')
-console.log('&&&&&&&& *******')
-console.log('&&&&&&&& *******')
-console.log('&&&&&&&& *******')
-
-throw new Error(`TEST!`);
-
-if (!workerData || !parentPort) {
-  throw new Error(`expected path/port`);
+if (!workerData) {
+  throw new Error(`expected workerData`);
+}
+if (!parentPort) {
+  throw new Error(`expected port`);
 }
 
 const workerPath = /** @type {string} */ (workerData);
-const importPromise = import(workerPath);
+const importPromise = import('../../' + workerPath);
 
 parentPort.on('message', (message) => {
   (async () => {

@@ -1,4 +1,4 @@
-import { setupLogger, LoggerOptions } from 'the-logger';
+import { logger } from './utils/logger';
 
 import 'mocha';
 import should = require('should');
@@ -7,9 +7,6 @@ import { fetchClient } from './utils/client';
 import { Promise } from 'the-promise';
 import { DeltaAction, ResourceWatch } from '../src/resource-watch';
 import { apiId } from '../src/utils';
-
-const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
-const logger = setupLogger('test', loggerOptions);
 
 
 describe('api-watch-query-all', function() {

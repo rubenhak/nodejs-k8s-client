@@ -1,4 +1,4 @@
-import { setupLogger, LoggerOptions } from 'the-logger';
+import { logger } from './utils/logger';
 
 import 'mocha';
 import should = require('should');
@@ -6,9 +6,6 @@ import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
 import { Promise } from 'the-promise';
 import { apiId } from '../src/utils';
-
-const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
-const logger = setupLogger('test', loggerOptions);
 
 const WATCH_DURATION = 10 * 1000;
 const REFRESH_INTERVAL = 5 * 1000;

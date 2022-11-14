@@ -1,4 +1,3 @@
-
 export interface ApiGroupInfo
 {
     id: string,
@@ -45,4 +44,3 @@ export class KubernetesError extends Error
         this.code = code
     }
 }
-

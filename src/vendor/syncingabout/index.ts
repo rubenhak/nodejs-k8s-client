@@ -1,27 +1,28 @@
 
 import { Worker, MessageChannel, receiveMessageOnPort } from 'worker_threads';
 
+
 /**
  * @param {string} workerPath
  * @return {(...args: any) => any}
  */
 export default function build(workerPath: string) : (...args: any) => any
 {
-  console.log("***** 22222");
-
-  console.log("PRE WORKER");
-  // const taskPath = new URL('./task.js', __dirname);
-
-  const taskPath = './vendor/syncingabout/task.js'; //__dirname + 
+  const taskPath = __dirname + '/task.mjs';
   const w = new Worker(taskPath, { 
-    workerData: workerPath ,
-    stdin: true,
-    stdout: true,
-    stderr: true,
+    workerData: workerPath,
   });
-  console.log("AFTER WORKER");  
+
+  w.on('error', (err) => {
+    console.error("|- K8s-CLIENT WORKER ERROR: ", err);
+    throw err;
+  })
+
+  w.on('exit', (code) => {
+    console.error("|- K8s-CLIENT WORKER EXIT: ", code);
+  })
+
   w.unref();
-  console.log("WORKER INFO: ", w);  
 
   let activeCount = 0;
 

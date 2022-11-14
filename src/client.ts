@@ -3,10 +3,9 @@ import { ILogger } from 'the-logger';
 import { Promise } from 'the-promise';
 import { v4 as uuidv4 } from 'uuid';
 
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-const rpc = require('sync-rpc');
+import axios, { AxiosRequestConfig, AxiosResponse, Method as AxiosMethod, ResponseType as AxiosResponseType  } from 'axios';
  
-import { Agent as HttpsAgent, AgentOptions } from 'https';
+import { Agent as HttpsAgent, AgentOptions as HttpsAgentOptions} from 'https';
 
 import { ApiGroupInfo, KubernetesError } from "./types";
 import { ResourceAccessor } from './resource-accessor';
@@ -19,7 +18,7 @@ import { KubernetesOpenApiClient } from './open-api/open-api-client';
 import { apiId, ApiResourceKey, apiVersionId } from './utils';
 
 export interface KubernetesClientConfig {
-    httpAgent? : AgentOptions,
+    httpAgent? : HttpsAgentOptions,
     server? : string,
     token? : string,
 }
@@ -27,6 +26,7 @@ export interface KubernetesClientConfig {
 export type ClusterInfoWatchCallback = (isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor) => any;
 
 import SyncAbout from './vendor/syncingabout';
+import { HttpRequestOptions } from './internal_types';
 
 let RPCSyncClient : any = null;
 
@@ -441,16 +441,27 @@ export class KubernetesClient
         return this._resources[accessorKey];
     }
 
-    request<T = any>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
+    request<T = any>(method: AxiosMethod, url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : Promise<T>
     {
         this._logger.debug('[request] %s => %s...', method, url);
         this.logger.debug("[request] -> %s", url);
 
         const options = this._makeAxiosOptions(method, url, params, body, useStream);
 
+        const axiosRequest : AxiosRequestConfig = {
+            method: options.method,
+            baseURL: options.baseURL,
+            url: options.url,
+            headers: options.headers,
+            httpsAgent: options.httpsAgentOptions ? new HttpsAgent(options.httpsAgentOptions) : undefined,
+            params: options.params,
+            data: options.data,
+            responseType: options.responseType as AxiosResponseType,
+        }
+
         this._logger.silly('[request] Begin', options);
         return Promise.resolve()
-            .then(() => axios(options))
+            .then(() => axios(axiosRequest))
             .then(result => {
                 this._logger.silly('[request] RAW RESULT:', result);
 
@@ -465,7 +476,7 @@ export class KubernetesClient
             });
     }
 
-    requestSync<T = any>(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null) : T
+    requestSync<T = any>(method: AxiosMethod, url: string, params? : Record<string, any>, body? : Record<string, any> | null) : T
     {
         this._logger.debug('[requestSync] %s => %s...', method, url);
         this.logger.debug("[requestSync] -> %s", url);
@@ -477,16 +488,16 @@ export class KubernetesClient
         console.log("***** requestSync");
 
         if (!RPCSyncClient) {
-            RPCSyncClient = SyncAbout('./client-sync.js');
+            RPCSyncClient = SyncAbout('./client-sync/method.mjs');
         }
 
         const result : {
             success: boolean,
             response?: AxiosResponse<any>,
             reason?: any
-        } = RPCSyncClient("test"); //options);
+        } = RPCSyncClient(options);
 
-        throw new Error("ZZZZZ")
+        // throw new Error("ZZZZZ")
 
         this._logger.silly('[requestSync] RAW RESULT:', result);
 
@@ -500,15 +511,15 @@ export class KubernetesClient
         }
     }
 
-    private _makeAxiosOptions(method: AxiosRequestConfig['method'], url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : AxiosRequestConfig
+    private _makeAxiosOptions(method: AxiosMethod, url: string, params? : Record<string, any>, body? : Record<string, any> | null, useStream? : boolean) : HttpRequestOptions
     {
         const httpAgentParams = this._config.httpAgent || {};
-        const options : AxiosRequestConfig = {
+        const options : HttpRequestOptions = {
             method: method,
             baseURL: this._config.server,
             url: url,
             headers: {},
-            httpsAgent: new HttpsAgent(httpAgentParams)
+            httpsAgentOptions: httpAgentParams
         };
 
         if (this._config.token)
@@ -544,7 +555,7 @@ export class KubernetesClient
         return <T>resultData;
     }
 
-    private _handleAxiosError(reason: any, options : AxiosRequestConfig)
+    private _handleAxiosError(reason: any, options : HttpRequestOptions)
     {
         const response = reason.response;
         let status = 0;
@@ -603,3 +614,5 @@ export interface ApiResourceInfo
     key: ApiResourceKey,
     group: ApiGroupInfo
 }
+
+
