@@ -95,6 +95,14 @@ export class BaseOpenApiDocumentParser
             schema.allOf = this._convertArray(openApiSchema.allOf);
         }
 
+        if (openApiSchema.oneOf) {
+            schema.oneOf = this._convertArray(openApiSchema.oneOf);
+        }
+
+        if (openApiSchema.anyOf) {
+            schema.anyOf = this._convertArray(openApiSchema.anyOf);
+        }
+
         if (_.isNotNullOrUndefined(openApiSchema.default))
         {
             schema.default = openApiSchema.default;
@@ -108,6 +116,18 @@ export class BaseOpenApiDocumentParser
         if (_.isNotNullOrUndefined(openApiSchema.enum))
         {
             schema.enum = openApiSchema.enum;
+        }
+
+        // BUG FIX: https://github.com/kubevious/cli/issues/13
+        if (!schema.type)
+        {
+            if (schema.format)
+            {
+                if (!schema.allOf && !schema.oneOf && !schema.anyOf)
+                {
+                    schema.type = "string"
+                }
+            }
         }
 
         if (openApiSchema.type === "object")
