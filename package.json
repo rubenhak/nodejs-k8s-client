@@ -1,6 +1,6 @@
 {
   "name": "k8s-super-client",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Kubernetes Client Library",
   "main": "dist/index.js",
   "types": "dist",
