@@ -1,6 +1,6 @@
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import * as ndjson from 'ndjson';
 import { ResourceAccessor, ResourceScope } from './resource-accessor';
 import { IncomingMessage } from 'http';
@@ -90,7 +90,7 @@ export class ResourceWatch
     waitClose()
     {
         this._logger.info('[waitClose] API: %s. Waiting...', this.name);
-        return Promise.construct((resolve, reject) => {
+        return MyPromise.construct<void>((resolve, reject) => {
             if (this._isDisconnected) {
                 resolve();
             } else {

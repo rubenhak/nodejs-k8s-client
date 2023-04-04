@@ -1,6 +1,6 @@
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { v4 as uuidv4 } from 'uuid';
 
 import axios, { AxiosRequestConfig, AxiosResponse, Method as AxiosMethod, ResponseType as AxiosResponseType  } from 'axios';
@@ -209,7 +209,7 @@ export class KubernetesClient
                     api: x,
                     client: this.client(x.kindName, x.apiName)!
                 }))
-                return Promise.serial(apis, x => {
+                return MyPromise.serial(apis, x => {
                     return watch.notifyApi(true, x.api, x.client);
                 })
             })
@@ -386,12 +386,12 @@ export class KubernetesClient
 
         return Promise.resolve()
             .then(() => {
-                return Promise.serial(toBeDeletedNotification, x => {
+                return MyPromise.serial(toBeDeletedNotification, x => {
                     this._notifyApi(false, x)
                 })
             })
             .then(() => {
-                return Promise.serial(toBeCreatedNotification, x => {
+                return MyPromise.serial(toBeCreatedNotification, x => {
                     this._notifyApi(true, x.api, x.client!)
                 })
             })
@@ -399,7 +399,7 @@ export class KubernetesClient
 
     private _notifyApi(isPresent: boolean, apiGroup: ApiGroupInfo, client?: ResourceAccessor)
     {
-        return Promise.serial(_.values(this._clusterInfoWatches), x => {
+        return MyPromise.serial(_.values(this._clusterInfoWatches), x => {
             return x.notifyApi(isPresent, apiGroup, client);
         })
     }

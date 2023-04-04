@@ -1,6 +1,6 @@
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { ResourceAccessor } from './resource-accessor';
 import { ClusterInfoWatchCallback, KubernetesClient } from './client';
 import { ApiGroupInfo } from './types';

@@ -1,6 +1,6 @@
 import _ from 'the-lodash'
 import { ILogger } from 'the-logger';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { KubernetesClient } from './client';
 import { ApiGroupInfo } from './types';
 
@@ -32,7 +32,7 @@ export class ClusterInfoFetcher
             .then(() => this._fetchApiGroup(null, this._rootApiVersion!, false))
             .then(() => this._discoverApiGroups())
             .then(apis => {
-                return Promise.parallel(apis, x => this._fetchApiGroup(x.name, x.version, true));
+                return MyPromise.parallel(apis, x => this._fetchApiGroup(x.name, x.version, true));
             })
             .then(() => this._finalizeApis())
             .then(() => {

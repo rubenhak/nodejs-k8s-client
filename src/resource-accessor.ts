@@ -2,7 +2,6 @@ import { AxiosRequestConfig } from 'axios';
 import _ from 'the-lodash'
 import { v4 as uuidv4 } from 'uuid';
 import { ILogger } from 'the-logger';
-import { Promise } from 'the-promise';
 import { KubernetesClient } from './client';
 
 import { ConnectCallback, DisconnectCallback, ResourceWatch, WatchCallback } from './resource-watch';

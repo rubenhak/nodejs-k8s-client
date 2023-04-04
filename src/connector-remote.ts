@@ -1,5 +1,5 @@
 import _ from 'the-lodash';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { ILogger } from 'the-logger';
 import dotenv from 'dotenv'
 import * as yaml from 'js-yaml';
@@ -223,7 +223,7 @@ export function connectRemoteCluster(logger : ILogger, kubeConfigPath: string, o
         }
 
         logger.info("[_executeCommand] running: %s, options:", cmd, options);
-        return Promise.construct((resolve, reject) => {
+        return MyPromise.construct<string>((resolve, reject) => {
             exec(cmd, options, (error, stdout, stderr) => {
             if (error) {
                 logger.error("[_executeCommand] failed: %s", error.message);

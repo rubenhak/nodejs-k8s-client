@@ -1,5 +1,5 @@
 import _ from 'the-lodash';
-import { Promise } from "the-promise";
+import { MyPromise } from "the-promise";
 import { KubernetesClient } from "../client";
 
 import { KubernetesVersionInfoRaw, KubernetesVersionInfo, K8sOpenApiSpecs } from "./types";
@@ -53,7 +53,7 @@ export class KubernetesOpenApiClient
         return this.queryV3RootPaths()
             .then(result => {
 
-                return Promise.execute(_.keys(result.paths), pathName => {
+                return MyPromise.execute(_.keys(result.paths), pathName => {
 
                     return this._client.request<KubernetesOpenApiV3Response>('GET', result.paths[pathName].serverRelativeURL)
                         .then(pathResult => {
