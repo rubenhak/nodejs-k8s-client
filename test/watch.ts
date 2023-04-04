@@ -1,9 +1,9 @@
 import { logger } from './utils/logger';
 
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { DeltaAction } from '../src';
 import { fetchClient } from './utils/client';
 
@@ -33,7 +33,7 @@ describe('deployment-watch', function() {
                     watchResult.disconnected = true;
                 })
 
-                return Promise.timeout(10000)
+                return MyPromise.delay(10000)
                     .then(() => {
                         watch.stop()
                         return watch.waitClose();

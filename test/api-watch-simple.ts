@@ -1,10 +1,10 @@
 import { logger } from './utils/logger';
 
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { apiId } from '../src/utils';
 
 const WATCH_DURATION = 10 * 1000;
@@ -28,7 +28,7 @@ describe('api-watch-simple', function() {
                     }
                 }, REFRESH_INTERVAL)
                 
-                return Promise.timeout(WATCH_DURATION)
+                return MyPromise.delay(WATCH_DURATION)
                     .then(() => client.close());
             })
             .then(result => {

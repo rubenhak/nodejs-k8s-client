@@ -2,7 +2,7 @@ import { logger } from './utils/logger';
 
 import 'mocha';
 import { after } from 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
 import { KubernetesClient } from '../src'

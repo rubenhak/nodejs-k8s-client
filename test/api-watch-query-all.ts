@@ -1,10 +1,10 @@
 import { logger } from './utils/logger';
 
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { DeltaAction, ResourceWatch } from '../src/resource-watch';
 import { apiId } from '../src/utils';
 
@@ -59,7 +59,7 @@ describe('api-watch-query-all', function() {
 
                 logger.info("*** Waiting to collect data.");
                 
-                return Promise.timeout(30 * 1000)
+                return MyPromise.delay(30 * 1000)
                     .then(() => {
                         logger.info("*** Wait completed. Closing connection.");
                         client.close()

@@ -1,10 +1,10 @@
 import { logger } from './utils/logger';
 
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { DeltaAction } from '../src';
 import { KubernetesObject } from '../src';
 
@@ -31,7 +31,7 @@ describe('cronjob-watch', function() {
 
                 }, () => {}, () => {});
 
-                return Promise.timeout(5 * 1000)
+                return MyPromise.delay(5 * 1000)
                     .then(() => {
                         watch.close();
                         

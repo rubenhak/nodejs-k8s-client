@@ -1,7 +1,7 @@
 import { logger } from './utils/logger';
 
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
 import { K8sOpenApiSpecs, K8sOpenApiSpecToJsonSchemaConverter } from '../src';
 import { OpenApiV3SchemaObject } from '../src/open-api/open-api-v3-types';

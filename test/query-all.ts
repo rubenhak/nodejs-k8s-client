@@ -1,10 +1,10 @@
 import { logger } from './utils/logger';
 
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
 import { fetchClient } from './utils/client';
-import { Promise } from 'the-promise';
+import { MyPromise } from 'the-promise';
 import { KubernetesObject } from '../src';
 
 
@@ -17,7 +17,7 @@ describe('query-all', function() {
         return fetchClient()
             .then(client => {
 
-                return Promise.serial(client.ApiGroups, x => {
+                return MyPromise.serial(client.ApiGroups, x => {
 
                     logger.info("Querying %s ...", x.id);
 
@@ -54,7 +54,7 @@ describe('query-all', function() {
         return fetchClient()
             .then(client => {
 
-                return Promise.serial(client.ApiGroups, x => {
+                return MyPromise.serial(client.ApiGroups, x => {
 
                     logger.info("Querying %s ...", x.id);
 
@@ -71,7 +71,7 @@ describe('query-all', function() {
                             })
                     
                 })
-                .then(() => Promise.timeout(5 * 1000))
+                .then(() => MyPromise.delay(5 * 1000))
                 .then(() => {
                     client.close();
                 });
