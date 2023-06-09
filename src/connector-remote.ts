@@ -21,6 +21,7 @@ export async function connectRemoteCluster(logger : ILogger, kubeConfigPath: str
 {
     params = params || {};
     params.skipAPIFetch = params.skipAPIFetch ?? false;
+    params.skipTLSVerify = params.skipTLSVerify ?? false;
     
     logger.info("KUBE CONFIG FILE: %s", kubeConfigPath);
 
@@ -36,6 +37,8 @@ export async function connectRemoteCluster(logger : ILogger, kubeConfigPath: str
         throw new Error(`Invalid cluster config: ${kubeConfigPath}`);
     }
 
+    const skipTLSVerify = false || cluster.skipTLSVerify || params.skipTLSVerify;
+
     const requestOptions: HttpsRequestOptions | WebSocketClientOptions = {}; 
     kubeConfig.applytoHTTPSOptions(requestOptions);
 
@@ -47,6 +50,7 @@ export async function connectRemoteCluster(logger : ILogger, kubeConfigPath: str
             ca: requestOptions.ca,
             cert: requestOptions.cert,
             key: requestOptions.key,
+            rejectUnauthorized: skipTLSVerify!
         }
     }
 

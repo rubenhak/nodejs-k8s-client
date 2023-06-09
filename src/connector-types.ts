@@ -1,4 +1,5 @@
 export interface ClusterConnectParams
 {
-    skipAPIFetch?: boolean
+    skipAPIFetch?: boolean;
+    skipTLSVerify?: boolean;
 }
