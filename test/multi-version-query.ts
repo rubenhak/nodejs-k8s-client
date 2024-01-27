@@ -87,7 +87,7 @@ describe('multi-version-query', function() {
         
         return fetchClient()
             .then(client => {
-                const rClient = client.client('HorizontalPodAutoscaler', 'autoscaling', 'v2beta2'); 
+                const rClient = client.client('HorizontalPodAutoscaler', 'autoscaling', 'v2');
                 should(rClient).be.ok();
                 return rClient!.queryAll()
             })
