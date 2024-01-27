@@ -140,6 +140,10 @@ export class ClusterInfoFetcher
         isNamespaced: boolean,
         verbs: string[])
     {
+        if (!verbs) {
+            this.logger.warn("[_setupApiGroup] missing verbs for apiName: %s, kindName: %s, version: %s, namespaced: %s", apiName, kindName, version, isNamespaced);
+        }
+        verbs = verbs || [];
         this.logger.info("[_setupApiGroup] apiName: %s, kindName: %s, version: %s, namespaced: %s, verbs: [%s]", apiName, kindName, version, isNamespaced, verbs.join(", "));
 
         const id = apiId(kindName, apiName);
