@@ -115,7 +115,8 @@ export class BaseOpenApiDocumentParser
 
         if (_.isNotNullOrUndefined(openApiSchema.enum))
         {
-            schema.enum = openApiSchema.enum;
+            // BUG FIX: https://github.com/kubevious/cli/issues/21
+            schema.enum = _.uniq(openApiSchema.enum)
         }
 
         // BUG FIX: https://github.com/kubevious/cli/issues/13
