@@ -1,0 +1,34 @@
+kind: service
+name: k8s
+description: K8s KIND instance
+
+# env:
+#   common:
+#     NPM_DEPENDENCIES: "the-lodash the-logger the-promise"
+
+mode: native
+
+runtime:
+  native:
+    enabled: true
+
+    check_installed:
+      description: Check if K8s KIND is installed.
+      operations:
+        - cmd: "kind --version"
+
+    install:
+      description: Install the necessary tools such as K8s KIND.
+      operations:
+        - cmd: echo "Install from here: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"
+
+    run:
+      description: Bringup K8s Kind Cluster
+      operations:
+        - cmd: "mkdir -p runtime"
+        # - cmd: "npm run build"
+
+    # test:
+    #   description: Run the tests.
+    #   operations:
+        # - cmd: "npm test ${@}"

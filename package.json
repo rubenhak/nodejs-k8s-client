@@ -35,7 +35,7 @@
     "kubernetes-types": "^1.30.0",
     "ndjson": "^2.0.0",
     "the-lodash": "^3.0.3",
-    "the-logger": "2.1.1",
+    "the-logger": "3.0.2",
     "the-promise": "^3.0.1",
     "uuid": "^14.0.1",
     "request": "^2.88.2",
@@ -62,7 +62,7 @@
   "pnpm": {
     "overrides": {
       "the-lodash": "^3.0.3",
-      "the-logger": "2.1.1",
+      "the-logger": "3.0.2",
       "the-promise": "^3.0.1"
     }
   }

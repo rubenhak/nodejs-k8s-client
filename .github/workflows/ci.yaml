@@ -39,10 +39,7 @@ jobs:
           github.ref == 'refs/heads/main' &&
           github.event_name == 'push' &&
           !contains(github.event.head_commit.message, '🤖 Version Release')
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global user.email "cicd@rubenhak.com"
           git config --global user.name "Rubenhak CI/CD"
