@@ -5,4 +5,4 @@ cd "$MY_DIR"
 
 SERVICE_NAME=$(yq "select(document_index == 0).name" qavor.yaml)
 
-qavor build --only "${SERVICE_NAME}" --serial --verbose
+qavor test --only "${SERVICE_NAME}" --serial --verbose ${@}
