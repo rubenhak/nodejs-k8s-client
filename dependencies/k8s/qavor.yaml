@@ -2,9 +2,9 @@ kind: service
 name: k8s
 description: K8s KIND instance
 
-# env:
-#   common:
-#     NPM_DEPENDENCIES: "the-lodash the-logger the-promise"
+env:
+  common:
+    KIND_KUBECONFIG_FILE: "runtime/kube-config.yaml"
 
 mode: native
 
@@ -20,12 +20,26 @@ runtime:
     install:
       description: Install the necessary tools such as K8s KIND.
       operations:
-        - cmd: echo "Install from here: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"
+        - cmd: 'echo "Install from here: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"'
 
     run:
       description: Bringup K8s Kind Cluster
       operations:
         - cmd: "mkdir -p runtime"
+        - cmd: "rm -f runtime/*"
+        - cmd: "kind create cluster --config=cluster-config.yaml --kubeconfig ${KIND_KUBECONFIG_FILE}"
+        - cmd: "kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/"
+
+    stop:
+      description: Destroy K8s Kind Cluster
+      operations:
+        - cmd: "kind delete cluster --name k8s-client-cluster"
+        - cmd: "rm -f runtime/*"
+        # - cmd: "kind create cluster --config=cluster-config.yaml --kubeconfig ${KIND_KUBECONFIG_FILE}"
+        # - cmd: "kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/"
+        
+
+      # - cmd: "mkdir -p runtime"
         # - cmd: "npm run build"
 
     # test:

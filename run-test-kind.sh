@@ -9,7 +9,7 @@ echo "*** Running Tests (kind)..."
 
 rm -rf ./logs
 
-export CLUSTER_NAME="kind-k8s-client-test"
+export CLUSTER_NAME="kind-k8s-client-cluster"
 echo "CLUSTER_NAME=${CLUSTER_NAME}"
 
 export K8S_APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster.server}")
