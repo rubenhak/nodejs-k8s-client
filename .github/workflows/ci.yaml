@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       # image: kubevious/node-builder:26-v1
-      image: rubenhak/qavor:node26-0.3.7
+      image: rubenhak/qavor:node26-0.3.8
     permissions:
       # id-token: write lets npm mint an OIDC token for trusted publishing.
       # contents: write lets the release commit and tag get pushed back.

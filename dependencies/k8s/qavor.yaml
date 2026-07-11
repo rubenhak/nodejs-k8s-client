@@ -1,48 +1,63 @@
 kind: service
-name: k8s
-description: K8s KIND instance
-
+name: kind-cluster
+profiles:
+  - github:rubenhak/qavor//library/kind
+  - file:///Users/rubenhak/repos/personal/qavor.git/library/kind/qavor.yaml
 env:
   common:
-    KIND_KUBECONFIG_FILE: "runtime/kube-config.yaml"
+    KIND_CLUSTER_NAME: k8s-client-cluster
+    KIND_SAMPLE_MANIFESTS_DIR: sample-manifests
 
-mode: native
 
-runtime:
-  native:
-    enabled: true
 
-    check_installed:
-      description: Check if K8s KIND is installed.
-      operations:
-        - cmd: "kind --version"
 
-    install:
-      description: Install the necessary tools such as K8s KIND.
-      operations:
-        - cmd: 'echo "Install from here: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"'
+# kind: service
+# name: k8s
+# description: K8s KIND instance
 
-    run:
-      description: Bringup K8s Kind Cluster
-      operations:
-        - cmd: "mkdir -p runtime"
-        - cmd: "rm -f runtime/*"
-        - cmd: "kind create cluster --config=cluster-config.yaml --kubeconfig ${KIND_KUBECONFIG_FILE}"
-        - cmd: "kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/"
+# env:
+#   common:
+#     KIND_KUBECONFIG_FILE: "runtime/kube-config.yaml"
 
-    stop:
-      description: Destroy K8s Kind Cluster
-      operations:
-        - cmd: "kind delete cluster --name k8s-client-cluster"
-        - cmd: "rm -f runtime/*"
-        # - cmd: "kind create cluster --config=cluster-config.yaml --kubeconfig ${KIND_KUBECONFIG_FILE}"
-        # - cmd: "kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/"
+# mode: native
+
+# runtime:
+#   native:
+#     enabled: true
+
+#     check_installed:
+#       description: Check if K8s KIND is installed.
+#       operations:
+#         - cmd: "kind --version"
+
+#     install:
+#       description: Install the necessary tools such as K8s KIND.
+#       operations:
+#         - cmd: 'echo "Install from here: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"'
+
+#     run:
+#       description: Bringup K8s Kind Cluster
+#       operations:
+#         - cmd: "echo $QAVOR_PROJECT_DIR"
+#         - cmd: "echo $QAVOR_SERVICE_DIR"
+#         - cmd: "mkdir -p runtime"
+#         - cmd: "rm -f runtime/*"
+#         - cmd: "kind create cluster --config=cluster-config.yaml --kubeconfig ${KIND_KUBECONFIG_FILE}"
+#         - cmd: "kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/"
+
+#     stop:
+#       description: Destroy K8s Kind Cluster
+#       operations:
+#         - cmd: "kind delete cluster --name k8s-client-cluster"
+#         - cmd: "rm -f runtime/*"
+#         # - cmd: "kind create cluster --config=cluster-config.yaml --kubeconfig ${KIND_KUBECONFIG_FILE}"
+#         # - cmd: "kubectl --kubeconfig ${KIND_KUBECONFIG_FILE} apply -f sample-manifests/"
         
 
-      # - cmd: "mkdir -p runtime"
-        # - cmd: "npm run build"
+#       # - cmd: "mkdir -p runtime"
+#         # - cmd: "npm run build"
 
-    # test:
-    #   description: Run the tests.
-    #   operations:
-        # - cmd: "npm test ${@}"
+#     # test:
+#     #   description: Run the tests.
+#     #   operations:
+#         # - cmd: "npm test ${@}"
