@@ -33,7 +33,7 @@ jobs:
         run: npm run build
 
       - name: Bringup K8s
-        run: qavor run --only k8s --serial --verbose
+        run: qavor up --only k8s --serial --verbose
 
       - name: Run Unit Tests
         run: npm test
