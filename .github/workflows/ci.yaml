@@ -35,8 +35,34 @@ jobs:
       - name: Bringup K8s
         run: qavor up --only kind-cluster --serial --verbose
 
+      - name: Setup ENV
+        run: |
+          qavor resolve-env --only kind-cluster --format export >> $GITHUB_ENV
+
       - name: Run Unit Tests
-        run: npm test
+        # run: npm test
+        run:  |
+          echo "KUBECONFIG=${KUBECONFIG}"
+
+          export CLUSTER_NAME="kind-k8s-client-cluster"
+          echo "CLUSTER_NAME=${CLUSTER_NAME}"
+
+          export K8S_APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster.server}")
+          echo "K8S_APISERVER=${K8S_APISERVER}"
+
+          export K8S_CA_DATA=$(kubectl config view --raw -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster['certificate-authority-data']}")
+          echo "K8S_CA_DATA=${K8S_CA_DATA}"
+          echo ""
+
+          export K8S_CLIENT_CERT=$(kubectl config view --raw -o jsonpath="{.users[?(@.name==\"$CLUSTER_NAME\")].user['client-certificate-data']}")
+          echo "K8S_CLIENT_CERT=${K8S_CLIENT_CERT}"
+          echo ""
+
+          export K8S_CLIENT_KEY=$(kubectl config view --raw -o jsonpath="{.users[?(@.name==\"$CLUSTER_NAME\")].user['client-key-data']}")
+          echo "K8S_CLIENT_KEY=${K8S_CLIENT_KEY}"
+          echo ""
+
+          npm test $@
 
       - name: Publish
         if: >-
