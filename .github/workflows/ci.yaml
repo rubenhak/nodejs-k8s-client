@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    container:
+      # image: kubevious/node-builder:26-v1
+      image: rubenhak/qavor:node26-0.3.8
+    permissions:
+      # id-token: write lets npm mint an OIDC token for trusted publishing.
+      # contents: write lets the release commit and tag get pushed back.
+      id-token: write
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Prepare Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compile
+        run: npm run build
+
+      - name: Bringup K8s
+        run: qavor up --only kind-cluster --serial --verbose
+
+      - name: Setup ENV
+        run: |
+          qavor resolve-env --only kind-cluster --format export >> $GITHUB_ENV
+
+      - name: Run Unit Tests
+        # run: npm test
+        run:  |
+          echo "KUBECONFIG=${KUBECONFIG}"
+          
+          echo "RESOVLED VALUES:"
+          qavor resolve-env --only kind-cluster --format export
+          source <(qavor resolve-env --only kind-cluster --format export)
+          echo "KUBECONFIG=${KUBECONFIG}"
+          cat ${KUBECONFIG}
+          
+          export CLUSTER_NAME="kind-k8s-client-cluster"
+          echo "CLUSTER_NAME=${CLUSTER_NAME}"
+
+          export K8S_APISERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster.server}")
+          echo "K8S_APISERVER=${K8S_APISERVER}"
+
+          export K8S_CA_DATA=$(kubectl config view --raw -o jsonpath="{.clusters[?(@.name==\"$CLUSTER_NAME\")].cluster['certificate-authority-data']}")
+          echo "K8S_CA_DATA=${K8S_CA_DATA}"
+          echo ""
+
+          export K8S_CLIENT_CERT=$(kubectl config view --raw -o jsonpath="{.users[?(@.name==\"$CLUSTER_NAME\")].user['client-certificate-data']}")
+          echo "K8S_CLIENT_CERT=${K8S_CLIENT_CERT}"
+          echo ""
+
+          export K8S_CLIENT_KEY=$(kubectl config view --raw -o jsonpath="{.users[?(@.name==\"$CLUSTER_NAME\")].user['client-key-data']}")
+          echo "K8S_CLIENT_KEY=${K8S_CLIENT_KEY}"
+          echo ""
+
+          npm test $@
+
+      - name: Publish
+        if: >-
+          github.ref == 'refs/heads/main' &&
+          github.event_name == 'push' &&
+          !contains(github.event.head_commit.message, '🤖 Version Release')
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global user.email "cicd@rubenhak.com"
+          git config --global user.name "Rubenhak CI/CD"
+
+          # Package name is read from package.json so this workflow needs no
+          # per-library edits beyond the placeholders above.
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+
+          # Bump the patch version without creating a git commit or tag yet,
+          # so a failure in a later step leaves the repo in a clean state.
+          npm version patch --no-git-tag-version
+          NEW_VERSION="$(node -p "require('./package.json').version")"
+
+          # Publish to npm first (the irreversible step). Skip if this version
+          # is already on the registry so reruns can recover gracefully.
+          if npm view "${PACKAGE_NAME}@${NEW_VERSION}" version >/dev/null 2>&1; then
+            echo "Version ${NEW_VERSION} already published, skipping npm publish."
+          else
+            npm publish
+          fi
+
+          # Record the release in git only after a successful publish, and push
+          # the commit and tag together so the branch and tags never get out of sync.
+          git commit -am "🤖 Version Release v${NEW_VERSION}"
+          # Annotated tag (-a): git push --follow-tags only pushes annotated
+          # tags, so a lightweight tag here would never reach the remote.
+          git tag -a "v${NEW_VERSION}" -m "🤖 Version Release v${NEW_VERSION}"
+          git push --follow-tags

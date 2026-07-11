@@ -1,0 +1,16 @@
+---
+kind: project
+name: k8s-super-client
+standalone: true
+
+---
+kind: service
+name: k8s-super-client
+description: Kubernetes Client Library
+
+env:
+  common:
+    NPM_DEPENDENCIES: "the-lodash the-logger the-promise"
+
+profiles:
+  - https://raw.githubusercontent.com/rubenhak/qavor/refs/heads/main/profiles/node-library/qavor.yaml

@@ -1,3 +1,5 @@
+.DS_Store
+
 # Logs
 logs
 *.log
@@ -63,8 +65,7 @@ typings/
 
 .history
 
-.DS_Store
-
 dist
 
 .vscode
+.qavor/

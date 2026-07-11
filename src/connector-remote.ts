@@ -40,7 +40,7 @@ export async function connectRemoteCluster(logger : ILogger, kubeConfigPath: str
     const skipTLSVerify = false || cluster.skipTLSVerify || params.skipTLSVerify;
 
     const requestOptions: HttpsRequestOptions | WebSocketClientOptions = {}; 
-    kubeConfig.applytoHTTPSOptions(requestOptions);
+    await kubeConfig.applyToHTTPSOptions(requestOptions);
 
     const k8sLogger = logger.sublogger('k8s');
 
@@ -54,9 +54,10 @@ export async function connectRemoteCluster(logger : ILogger, kubeConfigPath: str
         }
     }
 
-    if (requestOptions.headers?.Authorization)
+    const headers = requestOptions.headers as { Authorization?: string | number | readonly string[] } | undefined;
+    if (headers?.Authorization)
     {
-        const parts = requestOptions.headers?.Authorization.toString().split(' ');
+        const parts = headers.Authorization.toString().split(' ');
         clientConfig.token = _.last(parts);
     }
 
