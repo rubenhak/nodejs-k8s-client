@@ -2,10 +2,10 @@ kind: service
 name: kind-cluster
 profiles:
   - github:rubenhak/qavor//library/kind
-  - file:///Users/rubenhak/repos/personal/qavor.git/library/kind/qavor.yaml
 env:
   common:
     KIND_CLUSTER_NAME: k8s-client-cluster
+    KIND_CONFIG: cluster-config.yaml
     KIND_SAMPLE_MANIFESTS_DIR: sample-manifests
 
 
