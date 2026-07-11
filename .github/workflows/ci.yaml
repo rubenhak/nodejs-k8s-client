@@ -48,6 +48,7 @@ jobs:
           qavor resolve-env --only kind-cluster --format export
           source <(qavor resolve-env --only kind-cluster --format export)
           echo "KUBECONFIG=${KUBECONFIG}"
+          cat ${KUBECONFIG}
           
           export CLUSTER_NAME="kind-k8s-client-cluster"
           echo "CLUSTER_NAME=${CLUSTER_NAME}"
