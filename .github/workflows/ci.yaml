@@ -43,7 +43,12 @@ jobs:
         # run: npm test
         run:  |
           echo "KUBECONFIG=${KUBECONFIG}"
-
+          
+          echo "RESOVLED VALUES:"
+          qavor resolve-env --only kind-cluster --format export
+          source <(qavor resolve-env --only kind-cluster --format export)
+          echo "KUBECONFIG=${KUBECONFIG}"
+          
           export CLUSTER_NAME="kind-k8s-client-cluster"
           echo "CLUSTER_NAME=${CLUSTER_NAME}"
 
